@@ -53,7 +53,8 @@ def main():
             bondinfo = data
 
     check_cidr_overlap(cidrinfo.values())
-    check_allocation_pool(poolsinfo.values())
+    check_allocation_pools_pairing(network_data['parameter_defaults'],
+                                   poolsinfo)
 
 
 def check_cidr_overlap(networks):
@@ -65,11 +66,27 @@ def check_cidr_overlap(networks):
             LOG.error('Overlapping networks detected {} {}'.format(net1, net2))
 
 
-def check_allocation_pool(ranges):
-    objs = [[ipaddress.summarize_address_range(y['start'],
-            y['end']) for y in x] for x in ranges]
-    LOG.debug(objs)
-    #TODO: finish this
+def check_allocation_pools_pairing(filedata, pools):
+    for poolitem in pools:
+        pooldata = filedata[poolitem]
+
+        LOG.info('Checking allocation pool {}'.format(poolitem))
+        pool_objs = [ipaddress.summarize_address_range(
+            ipaddress.ip_address(x['start'].decode('utf-8')),
+            ipaddress.ip_address(x['end'].decode('utf-8'))) for x in
+            pooldata]
+
+        subnet_item = poolitem.split('AllocationPools')[0] + 'NetCidr'
+        subnet_obj = ipaddress.ip_network(
+            filedata[subnet_item].decode('utf-8'))
+
+        for ranges in pool_objs:
+            for range in ranges:
+                if not subnet_obj.overlaps(range):
+                    LOG.error('Allocation pool {} {} outside of subnet'
+                              '{}: {}'.format(poolitem, pooldata, subnet_item,
+                                              subnet_obj))
+                    break
 
 
 if __name__ == "__main__":
