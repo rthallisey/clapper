@@ -38,6 +38,10 @@ def main():
         network_data = yaml.load(net_file)
         LOG.debug('\n' + yaml.dump(network_data))
 
+    for item in network_data['resource_registry']:
+        data = network_data['resource_registry'][item]
+        LOG.debug(data)
+
     for item in network_data['parameter_defaults']:
         data = network_data['parameter_defaults'][item]
 
