@@ -42,6 +42,8 @@ def main():
         data = network_data['resource_registry'][item]
         LOG.debug(data)
 
+        NIC_validate(item, data)
+
     for item in network_data['parameter_defaults']:
         data = network_data['parameter_defaults'][item]
 
@@ -111,6 +113,14 @@ def check_vlan_ids(vlans):
             LOG.error('Vlan ID {} ({}) already exists in {}'.format(
                 v, k, invertdict[v]))
 
+
+def NIC_validate(resource, path):
+    try:
+        with open(path, 'r') as nic_file:
+            nic_data = yaml.load(nic_file)
+            LOG.debug('\n' + yaml.dump(nic_data))
+    except IOError:
+        LOG.error('The resource "%s" reference file does not exist: "%s"', resource, path)
 
 if __name__ == "__main__":
     sys.exit(main())
