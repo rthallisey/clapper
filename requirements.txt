@@ -1,2 +1,2 @@
-python-ipaddr
+ipaddress
 PyYAML
