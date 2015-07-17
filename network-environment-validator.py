@@ -1,49 +1,76 @@
+#!/usr/bin/env python
+# curl "https://bootstrap.pypa.io/get-pip.py" -o "get-pip.py"
+# python get-pip.py
+
+import argparse
+import ipaddress
+import itertools
+import logging
 import sys
 import yaml
-from socket import inet_ntoa
-from struct import pack
+
+logging.basicConfig()
+LOG = logging.getLogger(__name__)
+LOG.setLevel(logging.DEBUG)  # JPEELER: change to INFO later
+
+
+def argParser():
+    parser = argparse.ArgumentParser(description='Clapper')
+
+    parser.add_argument('-n', '--netenv',
+                        help='path to network environment file',
+                        type=str,
+                        default='network-environment.yaml')
+
+    return vars(parser.parse_args())
+
 
 def main():
+    args = argParser()
+
     cidrinfo = {}
     poolsinfo = {}
     vlaninfo = {}
     routeinfo = {}
     bondinfo = {}
 
-    with open("/home/stack/network-environment.yaml", 'r') as test_file:
-        network_data=(yaml.load(test_file))
-#        print(network_data)
+    with open(args['netenv'], 'r') as net_file:
+        network_data = yaml.load(net_file)
+        LOG.debug('\n' + yaml.dump(network_data))
 
-    for net in network_data['parameter_defaults']:
-        data=network_data['parameter_defaults'][net]
+    for item in network_data['parameter_defaults']:
+        data = network_data['parameter_defaults'][item]
 
-        if net.endswith('NetCidr'):
-            cidrinfo[net]=data
+        if item.endswith('NetCidr'):
+            cidrinfo[item] = data
+        elif item.endswith('AllocationPools'):
+            poolsinfo[item] = data
+        elif item.endswith('NetworkVlanID'):
+            vlaninfo[item] = data
+        elif item == 'ExternalInterfaceDefaultRoute':
+            routeinfo = data
+        elif item == 'BondInterfaceOvsOptions':
+            bondinfo = data
 
-        elif net.endswith('AllocationPools'):
-            poolsinfo[net]=data
-
-        elif net.endswith('NetworkVlanID'):
-            vlaninfo[net]=data
-
-        elif net == 'ExternalInterfaceDefualtRoute':
-            routeinfo=data
-
-        elif net == 'BondInterfaceOvsOptions':
-            bondinfo=data
+    check_cidr_overlap(cidrinfo.values())
+    check_allocation_pool(poolsinfo.values())
 
 
-    subnet_overlap(cidrinfo)
-    bonding_mode(bondinfo)
+def check_cidr_overlap(networks):
+    objs = [ipaddress.ip_network(x.decode('utf-8')) for x in networks]
+    LOG.debug(objs)
 
-def subnet_overlap(subnet):
-    for net in subnet:
-        print net,":",subnet[net]
-    #    mask = net.split('/')[1]
+    for net1, net2 in itertools.combinations(objs, 2):
+        if (net1.overlaps(net2)):
+            LOG.error('Overlapping networks detected {} {}'.format(net1, net2))
 
-def bonding_mode(bonding):
-    print("bonding info: %s" %bonding)
+
+def check_allocation_pool(ranges):
+    objs = [[ipaddress.summarize_address_range(y['start'],
+            y['end']) for y in x] for x in ranges]
+    LOG.debug(objs)
+    #TODO: finish this
+
 
 if __name__ == "__main__":
-    main()
-
+    sys.exit(main())
