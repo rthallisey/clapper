@@ -55,6 +55,7 @@ def main():
     check_cidr_overlap(cidrinfo.values())
     check_allocation_pools_pairing(network_data['parameter_defaults'],
                                    poolsinfo)
+    check_vlan_ids(vlaninfo)
 
 
 def check_cidr_overlap(networks):
@@ -94,6 +95,17 @@ def check_allocation_pools_pairing(filedata, pools):
                               '{}: {}'.format(poolitem, pooldata, subnet_item,
                                               subnet_obj))
                     break
+
+
+def check_vlan_ids(vlans):
+    invertdict = {}
+    for k, v in vlans.iteritems():
+        LOG.info('Checking Vlan ID {}'.format(k))
+        if v not in invertdict:
+            invertdict[v] = k
+        else:
+            LOG.error('Vlan ID {} ({}) already exists in {}'.format(
+                v, k, invertdict[v]))
 
 
 if __name__ == "__main__":
