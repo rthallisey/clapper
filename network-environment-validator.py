@@ -58,8 +58,12 @@ def main():
 
 
 def check_cidr_overlap(networks):
-    objs = [ipaddress.ip_network(x.decode('utf-8')) for x in networks]
-    LOG.debug(objs)
+    objs = []
+    for x in networks:
+        try:
+            objs += [ipaddress.ip_network(x.decode('utf-8'))]
+        except ValueError:
+            LOG.error('Invalid address: %s', x)
 
     for net1, net2 in itertools.combinations(objs, 2):
         if (net1.overlaps(net2)):
@@ -77,8 +81,11 @@ def check_allocation_pools_pairing(filedata, pools):
             pooldata]
 
         subnet_item = poolitem.split('AllocationPools')[0] + 'NetCidr'
-        subnet_obj = ipaddress.ip_network(
-            filedata[subnet_item].decode('utf-8'))
+	try:
+            subnet_obj = ipaddress.ip_network(
+                filedata[subnet_item].decode('utf-8'))
+        except ValueError:
+            LOG.error('Invalid address: %s', subnet_item)
 
         for ranges in pool_objs:
             for range in ranges:
