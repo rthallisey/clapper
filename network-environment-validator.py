@@ -122,22 +122,29 @@ def NIC_validate(resource, path):
         LOG.error('The resource "%s" reference file does not exist: "%s"', resource, path)
 
     # Look though every resources bridges and make sure there is only a single
-    # bond per bridge
+    # bond per bridge and only 1 interface per bridge if there are no bonds.
     for item in nic_data['resources']:
         bridges = nic_data['resources'][item]['properties']['config']['os_net_config']['network_config']
         for bridge in bridges:
             LOG.debug('\n' + yaml.dump(bridge))
             if bridge['type'] == 'ovs_bridge':
                 bond_count = 0
+                interface_count = 0
                 for bond in bridge['members']:
                     if bond['type'] == 'ovs_bond':
                         bond_count+=1
+                    if bond['type'] == 'interface':
+                        interface_count+=1
                 if bond_count == 0:
-                    LOG.debug('There are 0 bonds for a bridge of resource %s in %s', item, path)
+                    # Logging could be better if we knew the bridge name
+                    # Since it's passed as a paramter we would need to catch it
+                    LOG.debug('There are 0 bonds for bridge %s of resource %s in %s', bridge['name'], item, path)
                 if bond_count == 1:
-                    LOG.debug('There is 1 bond for a bridge of resource %s in %s', item, path)
+                    LOG.debug('There is 1 bond for bridge %s of resource %s in %s', bridge['name'], item, path)
                 if bond_count == 2:
-                    LOG.Error('There are 2 bonds for a bridge of resource %s in %s', item, path)
+                    LOG.error('Invalid bonding: There are 2 bonds for bridge %s of resource %s in %s', bridge['name'], item, path)
+                if bond_count == 0 and interface_count > 1:
+                    LOG.error('Invalid interface: When not using a bond, there can only be 1 interface for bridge %s of resource %s in %s', bridge['name'], item, path)
 
 
 if __name__ == "__main__":
