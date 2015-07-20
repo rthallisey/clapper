@@ -118,9 +118,27 @@ def NIC_validate(resource, path):
     try:
         with open(path, 'r') as nic_file:
             nic_data = yaml.load(nic_file)
-            LOG.debug('\n' + yaml.dump(nic_data))
     except IOError:
         LOG.error('The resource "%s" reference file does not exist: "%s"', resource, path)
+
+    # Look though every resources bridges and make sure there is only a single
+    # bond per bridge
+    for item in nic_data['resources']:
+        bridges = nic_data['resources'][item]['properties']['config']['os_net_config']['network_config']
+        for bridge in bridges:
+            LOG.debug('\n' + yaml.dump(bridge))
+            if bridge['type'] == 'ovs_bridge':
+                bond_count = 0
+                for bond in bridge['members']:
+                    if bond['type'] == 'ovs_bond':
+                        bond_count+=1
+                if bond_count == 0:
+                    LOG.debug('There are 0 bonds for a bridge of resource %s in %s', item, path)
+                if bond_count == 1:
+                    LOG.debug('There is 1 bond for a bridge of resource %s in %s', item, path)
+                if bond_count == 2:
+                    LOG.Error('There are 2 bonds for a bridge of resource %s in %s', item, path)
+
 
 if __name__ == "__main__":
     sys.exit(main())

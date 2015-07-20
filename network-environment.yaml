@@ -1,9 +1,9 @@
 resource_registry:
-  OS::TripleO::BlockStorage::Net::SoftwareConfig: /home/stack/nic-configs/cinder-storage.yaml
-  OS::TripleO::Compute::Net::SoftwareConfig: /home/stack/nic-configs/compute.yaml
-  OS::TripleO::Controller::Net::SoftwareConfig: /home/stack/nic-configs/controller.yaml
-  OS::TripleO::ObjectStorage::Net::SoftwareConfig: /home/stack/nic-configs/swift-storage.yaml
-  OS::TripleO::CephStorage::Net::SoftwareConfig: /home/stack/nic-configs/ceph-storage.yaml
+#  OS::TripleO::BlockStorage::Net::SoftwareConfig: /home/stack/nic-configs/cinder-storage.yaml
+#  OS::TripleO::Compute::Net::SoftwareConfig: /home/stack/nic-configs/compute.yaml
+  OS::TripleO::Controller::Net::SoftwareConfig: nic-configs/controller.yaml
+#  OS::TripleO::ObjectStorage::Net::SoftwareConfig: /home/stack/nic-configs/swift-storage.yaml
+#  OS::TripleO::CephStorage::Net::SoftwareConfig: /home/stack/nic-configs/ceph-storage.yaml
 parameter_defaults:
   # Customize all these values to match the local environment
   InternalApiNetCidr: 172.17.0.0/24
