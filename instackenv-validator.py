@@ -20,6 +20,9 @@ def argParser():
                         help='path to instack json environment file',
                         type=str,
                         default='instackenv.json')
+    parser.add_argument('-i', '--ipmi',
+                        help='Check each host with ipmi.',
+                        action='store_true')
 
     return vars(parser.parse_args())
 
@@ -57,10 +60,13 @@ def main():
             maclist.append(node['mac'])
         except Exception, e:
             LOG.error('ERROR: MAC address does not exist: %s', e)
-        cmd = 'ipmitool -I lanplus -H %s -U %s -k "%s"' % (node['pm_addr'],
-              node['pm_user'], node['pm_password'])
-        print("Executing:", cmd)
-        os.system(cmd)
+
+        if args['ipmi'] is True:
+            # This seems broken but I'm not sure how to get this tool going.
+            cmd = 'ipmitool -I lanplus -H %s -U %s -p "%s"' % (node['pm_addr'],
+                  node['pm_user'], node['pm_password'])
+            print("Executing:", cmd)
+            os.system(cmd)
 
     if not allUnique(maclist):
         LOG.error('ERROR: MAC addresses are not all unique.')
