@@ -13,6 +13,7 @@ logging.basicConfig()
 LOG = logging.getLogger(__name__)
 LOG.setLevel(logging.DEBUG)  # JPEELER: change to INFO later
 
+ERROR_COUNT = 0
 
 def argParser():
     parser = argparse.ArgumentParser(description='Clapper')
@@ -36,12 +37,12 @@ def main():
 
     with open(args['netenv'], 'r') as net_file:
         network_data = yaml.load(net_file)
-        LOG.debug('\n' + yaml.dump(network_data))
+        #LOG.debug('\n' + yaml.dump(network_data))
 
     for item in network_data['resource_registry']:
         data = network_data['resource_registry'][item]
-        LOG.debug(data)
-
+        #LOG.debug(data)
+        LOG.info('Validating %s', data)
         NIC_validate(item, data)
 
     for item in network_data['parameter_defaults']:
@@ -63,21 +64,30 @@ def main():
                                    poolsinfo)
     check_vlan_ids(vlaninfo)
 
+    print '\n ----------SUMMARY----------'
+    if ERROR_COUNT > 0:
+        print 'FAILED Validation with %i error(s)' %ERROR_COUNT
+    else:
+        print 'SUCCESSFUL Validation with %i error(s)' %ERROR_COUNT
 
 def check_cidr_overlap(networks):
+    global ERROR_COUNT
     objs = []
     for x in networks:
         try:
             objs += [ipaddress.ip_network(x.decode('utf-8'))]
         except ValueError:
             LOG.error('Invalid address: %s', x)
+            ERROR_COUNT = ERROR_COUNT + 1
 
     for net1, net2 in itertools.combinations(objs, 2):
         if (net1.overlaps(net2)):
             LOG.error('Overlapping networks detected {} {}'.format(net1, net2))
-
+            ERROR_COUNT += 1
 
 def check_allocation_pools_pairing(filedata, pools):
+    global ERROR_COUNT
+
     for poolitem in pools:
         pooldata = filedata[poolitem]
 
@@ -93,6 +103,7 @@ def check_allocation_pools_pairing(filedata, pools):
                 filedata[subnet_item].decode('utf-8'))
         except ValueError:
             LOG.error('Invalid address: %s', subnet_item)
+            ERROR_COUNT += 1
 
         for ranges in pool_objs:
             for range in ranges:
@@ -100,11 +111,14 @@ def check_allocation_pools_pairing(filedata, pools):
                     LOG.error('Allocation pool {} {} outside of subnet'
                               '{}: {}'.format(poolitem, pooldata, subnet_item,
                                               subnet_obj))
+                    ERROR_COUNT += 1
                     break
 
 
 def check_vlan_ids(vlans):
+    global ERROR_COUNT
     invertdict = {}
+
     for k, v in vlans.iteritems():
         LOG.info('Checking Vlan ID {}'.format(k))
         if v not in invertdict:
@@ -112,21 +126,25 @@ def check_vlan_ids(vlans):
         else:
             LOG.error('Vlan ID {} ({}) already exists in {}'.format(
                 v, k, invertdict[v]))
+            ERROR_COUNT += 1
 
 
 def NIC_validate(resource, path):
+    global ERROR_COUNT
+
     try:
         with open(path, 'r') as nic_file:
             nic_data = yaml.load(nic_file)
     except IOError:
         LOG.error('The resource "%s" reference file does not exist: "%s"', resource, path)
+        ERROR_COUNT += 1
 
     # Look though every resources bridges and make sure there is only a single
     # bond per bridge and only 1 interface per bridge if there are no bonds.
     for item in nic_data['resources']:
         bridges = nic_data['resources'][item]['properties']['config']['os_net_config']['network_config']
         for bridge in bridges:
-            LOG.debug('\n' + yaml.dump(bridge))
+            #LOG.debug('\n' + yaml.dump(bridge))
             if bridge['type'] == 'ovs_bridge':
                 bond_count = 0
                 interface_count = 0
@@ -143,8 +161,10 @@ def NIC_validate(resource, path):
                     LOG.debug('There is 1 bond for bridge %s of resource %s in %s', bridge['name'], item, path)
                 if bond_count == 2:
                     LOG.error('Invalid bonding: There are 2 bonds for bridge %s of resource %s in %s', bridge['name'], item, path)
+                    ERROR_COUNT += 1
                 if bond_count == 0 and interface_count > 1:
                     LOG.error('Invalid interface: When not using a bond, there can only be 1 interface for bridge %s of resource %s in %s', bridge['name'], item, path)
+                    ERROR_COUNT += 1
 
 
 if __name__ == "__main__":
