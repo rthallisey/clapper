@@ -1,0 +1,7 @@
+---
+- hosts: all
+  remote_user: heat-admin
+  tasks:
+  - name: get status of all interfaces
+    debug: var="ansible_{{ item | regex_replace('-', '_') }}"
+    with_items: "{{ ansible_interfaces }}"
