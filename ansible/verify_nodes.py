@@ -111,7 +111,7 @@ def main():
     run_result = heat_config_runner.run()
     heat_config = {}
     for k, v in run_result['contacted'].items():
-        heat_config[k] = v['ansible_facts']['heat_facts']
+        heat_config[k] = v['ansible_facts']
 
     global output_data
     print('output_data: %s' % output_data)
