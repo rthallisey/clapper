@@ -107,6 +107,7 @@ def main():
     heat_config_runner = Runner(host_list='hosts',
                                 remote_user='heat-admin',
                                 module_name='heat_config',
+                                become=True,
                                 module_args='')
     run_result = heat_config_runner.run()
     heat_config = {}
