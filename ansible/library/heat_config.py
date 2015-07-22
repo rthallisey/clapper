@@ -1,5 +1,8 @@
+#!/usr/bin/env python
+
+
 def main():
-    module = AnsibleModule()
+    module = AnsibleModule(argument_spec={})
 
     facts = {
         'heat_facts': {
