@@ -8,16 +8,14 @@ import subprocess
 import sys
 import os
 import json
-from ansible.playbook import PlayBook
 from ansible.runner import Runner
 import ansible.inventory
-from ansible import callbacks
-from ansible import utils
 import re
 
 #logging.basicConfig()
 #LOG = logging.getLogger(__name__)
 #LOG.setLevel(logging.DEBUG)  # JPEELER: change to INFO later
+
 
 def argParser():
     parser = argparse.ArgumentParser(description='Clapper')
@@ -29,6 +27,7 @@ def argParser():
     return vars(parser.parse_args())
 
 output_data = {}
+
 
 def run(cmd, env):
     '''Run a process in the given environment.
@@ -57,17 +56,40 @@ def get_discoverd_data():
         result[name] = json.loads(object)
     return result
 
+def heat_config_check():
+    heat_config_runner = Runner(host_list='hosts',
+                                module_name='heat_config',
+                                remote_user='heat-admin',
+                                become=True,
+                                module_args='')
+    run_result = heat_config_runner.run()
+    heat_config = {}
+    for k, v in run_result['contacted'].items():
+        heat_config[k] = v['ansible_facts']
 
-class CustomHandler(ansible.callbacks.PlaybookRunnerCallbacks):
-    def __init__(self, stats=None):
-        print 'init'
-        super(CustomHandler, self).__init__(stats=stats)
+    discoverd_data = get_discoverd_data()
+    print '\n\nIronic discoverd data:'
+    for hwid, data in discoverd_data.items():
+        print hwid, data
 
-    def on_ok(self, host, host_result):
-        global output_data
-        if host not in output_data:
-            output_data[host] = []
-        output_data[host].append(host_result)
+    # NOTE(shadower): the entire heat_config is HUGE
+    print '\n\nos-net-config input:'
+    for ip, config in heat_config.items():
+        print ip
+        pprint.pprint(config['complete'].get('os_net_config', {}))
+    pprint.pprint(heat_config)
+
+
+def network_verify():
+    heat_config_runner = Runner(host_list='hosts',
+                                module_name='network_check',
+                                remote_user='heat-admin',
+                                become=True,
+                                module_args='')
+    run_result = heat_config_runner.run()
+    heat_config = {}
+    for k, v in run_result['contacted'].items():
+        heat_config[k] = v['ansible_facts']
 
 
 def main():
@@ -86,49 +108,7 @@ def main():
 
     hostfile.close()
 
-    stats = ansible.callbacks.AggregateStats()
-    pb_callback = ansible.callbacks.PlaybookCallbacks()
-    run_callback = CustomHandler(stats=stats)
-    #run_callback = ansible.callbacks.PlaybookRunnerCallbacks(stats=stats)
-
-    p = ansible.playbook.PlayBook(playbook='playbook.yml',
-                                  remote_user='heat-admin',
-                                  host_list='hosts',
-                                  forks=1,
-                                  stats=stats,
-                                  callbacks=pb_callback,
-                                  runner_callbacks=run_callback)
-    output = p.run()
-
-    f = open('ansible_run.json', 'w')
-    f.write(json.dumps(output, sort_keys=True, indent=4))
-    f.close()
-
-    heat_config_runner = Runner(host_list='hosts',
-                                remote_user='heat-admin',
-                                module_name='heat_config',
-                                become=True,
-                                module_args='')
-    run_result = heat_config_runner.run()
-    heat_config = {}
-    for k, v in run_result['contacted'].items():
-        heat_config[k] = v['ansible_facts']
-
-    global output_data
-    print('output_data: %s' % output_data)
-    for key in output_data.keys():
-        print('host: %s: %s' % (key, output_data[key]))
-
-    discoverd_data = get_discoverd_data()
-    print '\n\nIronic discoverd data:'
-    for hwid, data in discoverd_data.items():
-        print hwid, data
-
-    # NOTE(shadower): the entire heat_config is HUGE
-    print '\n\nos-net-config input:'
-    for ip, config in heat_config.items():
-        print ip
-        pprint.pprint(config['complete'].get('os_net_config', {}))
+    heat_config_check()
 
 
 if __name__ == "__main__":
