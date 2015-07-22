@@ -30,9 +30,9 @@ def main():
                 module.fail_json(msg="Could not parse json at '%s'" % path)
 
     complete_config = {}
-    for conf in facts['occ_files'].values():
-        final_config.update(conf)
-    facts['complete'] = final_config
+    for conf in facts['files'].values():
+        complete_config.update(conf)
+    facts['complete'] = complete_config
 
     result = {
         'ansible_facts': facts,
