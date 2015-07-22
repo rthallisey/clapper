@@ -120,12 +120,12 @@ def main():
         print('host: %s: %s' % (key, output_data[key]))
 
     discoverd_data = get_discoverd_data()
-    print 'Ironic discoverd data:'
+    print '\n\nIronic discoverd data:'
     for hwid, data in discoverd_data.items():
         print hwid, data
 
     # NOTE(shadower): the entire heat_config is HUGE
-    print 'os-net-config input:'
+    print '\n\nos-net-config input:'
     for ip, config in heat_config.items():
         print ip
         pprint.pprint(config['complete'].get('os_net_config', {}))
