@@ -9,6 +9,7 @@ import sys
 import os
 import json
 from ansible.playbook import PlayBook
+from ansible.runner import Runner
 import ansible.inventory
 from ansible import callbacks
 from ansible import utils
@@ -103,6 +104,16 @@ def main():
     f.write(json.dumps(output, sort_keys=True, indent=4))
     f.close()
 
+    heat_config_runner = Runner(host_list='hosts',
+                                remote_user='heat-admin',
+                                module_name='heat_config',
+                                become=True,
+                                module_args='')
+    run_result = heat_config_runner.run()
+    heat_config = {}
+    for k, v in run_result['contacted'].items():
+        heat_config[k] = v['ansible_facts']
+
     global output_data
     print('output_data: %s' % output_data)
     for key in output_data.keys():
@@ -112,6 +123,12 @@ def main():
     print 'Ironic discoverd data:'
     for hwid, data in discoverd_data.items():
         print hwid, data
+
+    # NOTE(shadower): the entire heat_config is HUGE
+    print 'os-net-config input:'
+    for ip, config in heat_config.items():
+        print ip
+        pprint.pprint(config['complete'].get('os_net_config', {}))
 
 
 if __name__ == "__main__":
