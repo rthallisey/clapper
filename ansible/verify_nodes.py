@@ -4,6 +4,7 @@
 
 import argparse
 import pprint
+import subprocess
 import sys
 import os
 import json
@@ -28,6 +29,33 @@ def argParser():
 
 output_data = {}
 
+def run(cmd, env):
+    '''Run a process in the given environment.
+
+    Returns tuple: (return code, stdout, stderr).
+    '''
+    e = os.environ.copy()
+    e.update(env)
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE, env=e)
+    stdout, stderr = process.communicate()
+    return_code = process.wait()
+    return (return_code, stdout, stderr)
+
+
+def get_discoverd_data():
+    '''Gather ironic-discoverd output from Swift.'''
+    result = {}
+    env = {'OS_TENANT_NAME': 'service'}
+    code, stdout, stderr = run(('swift', 'list', 'ironic-discoverd'), env)
+    assert code == 0
+    for name in stdout.splitlines():
+        cmd = ('swift', 'download', '--output', '-', 'ironic-discoverd', name)
+        code, object, stderr = run(cmd, env)
+        assert code == 0
+        result[name] = json.loads(object)
+    return result
+
 
 class CustomHandler(ansible.callbacks.PlaybookRunnerCallbacks):
     def __init__(self, stats=None):
@@ -36,13 +64,9 @@ class CustomHandler(ansible.callbacks.PlaybookRunnerCallbacks):
 
     def on_ok(self, host, host_result):
         global output_data
-        #print('host: %s' % host)
-        #print('host_result: %s' % host_result)
         if host not in output_data:
             output_data[host] = []
         output_data[host].append(host_result)
-        #output_data['asdf'] = 1
-        #print 'output_data: %s' % output_data
 
 
 def main():
@@ -83,6 +107,11 @@ def main():
     print('output_data: %s' % output_data)
     for key in output_data.keys():
         print('host: %s: %s' % (key, output_data[key]))
+
+    discoverd_data = get_discoverd_data()
+    print 'Ironic discoverd data:'
+    for hwid, data in discoverd_data.items():
+        print hwid, data
 
 
 if __name__ == "__main__":
