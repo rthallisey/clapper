@@ -124,10 +124,11 @@ def main():
     for hwid, data in discoverd_data.items():
         print hwid, data
 
-    print 'Heat configuration:'
+    # NOTE(shadower): the entire heat_config is HUGE
+    print 'os-net-config input:'
     for ip, config in heat_config.items():
         print ip
-        pprint.pprint(config)
+        pprint.pprint(config['complete'].get('os_net_config', {}))
 
 
 if __name__ == "__main__":

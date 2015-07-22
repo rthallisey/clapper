@@ -13,7 +13,7 @@ def main():
     module = AnsibleModule(argument_spec={})
 
     facts = {
-        'occ_files': {}
+        'files': {}
     }
 
     for path in get_occ_files():
@@ -25,14 +25,14 @@ def main():
 
         if contents:
             try:
-                facts['occ_files'][path] = json.loads(contents)
+                facts['files'][path] = json.loads(contents)
             except:
                 module.fail_json(msg="Could not parse json at '%s'" % path)
 
-    final_config = {}
+    complete_config = {}
     for conf in facts['occ_files'].values():
         final_config.update(conf)
-    facts['final_config'] = final_config
+    facts['complete'] = final_config
 
     result = {
         'ansible_facts': facts,
