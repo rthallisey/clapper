@@ -126,7 +126,8 @@ def main():
 
     print 'Heat configuration:'
     for ip, config in heat_config.items():
-        print ip, config
+        print ip
+        pprint.pprint(config)
 
 
 if __name__ == "__main__":
