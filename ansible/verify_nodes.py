@@ -41,7 +41,7 @@ class CustomHandler(ansible.callbacks.PlaybookRunnerCallbacks):
         if host not in output_data:
             output_data[host] = []
         output_data[host].append(host_result)
-        output_data['asdf'] = 1
+        #output_data['asdf'] = 1
         #print 'output_data: %s' % output_data
 
 
@@ -69,6 +69,7 @@ def main():
     p = ansible.playbook.PlayBook(playbook='playbook.yml',
                                   remote_user='heat-admin',
                                   host_list='hosts',
+                                  forks=1,
                                   stats=stats,
                                   callbacks=pb_callback,
                                   runner_callbacks=run_callback)
