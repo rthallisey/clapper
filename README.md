@@ -20,9 +20,11 @@ By default this will search for instackenv.json.
 In order to use the IPMI acccess checking feature, you’ll need to run the following
 command to install ipmitool on the undercloud node:
 
-> sudo yum -y install ipmitooli
+'''
+ sudo yum -y install ipmitooli
 
-> ./instackenv-validation.py
+ ./instackenv-validation.py
+'''
 
 The network-validation.py script takes the network-environment.yaml file which 
 will be used to launch the overcloud as its input and checks for several things:
@@ -30,7 +32,9 @@ will be used to launch the overcloud as its input and checks for several things:
 - Allocation Pools should be part of the appropriate subnet
 - VLAN IDs are unique per network
 
-> ./network-validation.py
+'''
+ ./network-validation.py
+'''
 
 End to End Network Validation
 =============================
@@ -42,15 +46,21 @@ it will show up in heat.
 
 To apply these patches run:
 
-> cat patches/000* | (cd /usr/share/openstack-tripleo-heat-templates; sudo patch -p1)
+'''
+ cat patches/000* | (cd /usr/share/openstack-tripleo-heat-templates; sudo patch -p1)
+'''
 
 If you get a failure from heat in the AllNodesValidations, you can run:
 
-> heat resource-list -n5 overcloud | grep Deployment | grep FAILED
+'''
+ heat resource-list -n5 overcloud | grep Deployment | grep FAILED
+'''
 
 and look for the deployments with names '0'.  For each of these run:
 
-> heat deployment-show <uuid>
+'''
+ heat deployment-show <uuid>
+'''
 
 of a given deployment.
 
