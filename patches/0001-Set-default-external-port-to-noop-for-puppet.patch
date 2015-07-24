@@ -1,0 +1,34 @@
+From 37b17c8cfccd1b270ba4cb60bddad413f034287e Mon Sep 17 00:00:00 2001
+From: Dan Prince <dprince@redhat.com>
+Date: Thu, 23 Jul 2015 14:06:19 -0400
+Subject: [PATCH] Set default external port to noop for puppet
+
+In 9b89dd20162d962480d3cb84161ed6bfd4fa9de8 we had a regression
+where the default "external" traffic port was set to a VIP
+when using puppet. We should not ever specify a VIP to be used
+for the actual machine IPs (VIPs are only guaranteed to
+work once the load balancer is running).
+
+Also, This doesn't match the non-puppet case.
+
+Change-Id: Icd179a70001f2bd7a97e31c7f6445001330674cd
+---
+ overcloud-resource-registry-puppet.yaml | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/overcloud-resource-registry-puppet.yaml b/overcloud-resource-registry-puppet.yaml
+index 75e5322..17c1470 100644
+--- a/overcloud-resource-registry-puppet.yaml
++++ b/overcloud-resource-registry-puppet.yaml
+@@ -46,7 +46,7 @@ resource_registry:
+   OS::TripleO::Network::Ports::NetIpListMap: network/ports/net_ip_list_map.yaml
+ 
+   # Port assignments for the controller role
+-  OS::TripleO::Controller::Ports::ExternalPort: network/ports/ctlplane_vip.yaml
++  OS::TripleO::Controller::Ports::ExternalPort: network/ports/noop.yaml
+   OS::TripleO::Controller::Ports::InternalApiPort: network/ports/noop.yaml
+   OS::TripleO::Controller::Ports::StoragePort: network/ports/noop.yaml
+   OS::TripleO::Controller::Ports::StorageMgmtPort: network/ports/noop.yaml
+-- 
+1.8.3.1
+
