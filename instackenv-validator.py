@@ -20,9 +20,6 @@ def argParser():
                         help='path to instack json environment file',
                         type=str,
                         default='instackenv.json')
-    parser.add_argument('-i', '--ipmi',
-                        help='Check each host with ipmi.',
-                        action='store_true')
 
     return vars(parser.parse_args())
 
@@ -35,41 +32,68 @@ def allUnique(x):
 def main():
     args = argParser()
 
+    error_count = 0 
+
     with open(args['file'], 'r') as net_file:
         env_data = json.load(net_file)
-        #LOG.debug('\n' + json.dumps(env_data))
-
-    for data in env_data:
-        print data
 
     maclist = []
+    baremetal_ips =[]
     for node in env_data['nodes']:
+        LOG.info("Checking node %s" % node['pm_addr'])        
+
         try:
             if len(node['pm_password']) == 0:
                 LOG.error('ERROR: Password 0 length.')
         except Exception, e:
             LOG.error('ERROR: Password does not exist: %s', e)
+	    error_count += 1
         try:
             if len(node['pm_user']) == 0:
                 LOG.error('ERROR: User 0 length.')
         except Exception, e:
             LOG.error('ERROR: User does not exist: %s', e)
+	    error_count += 1
         try:
             if len(node['mac']) == 0:
                 LOG.error('ERROR: MAC address 0 length.')
             maclist.append(node['mac'])
         except Exception, e:
             LOG.error('ERROR: MAC address does not exist: %s', e)
+	    error_count += 1
 
-        if args['ipmi'] is True:
-            # This seems broken but I'm not sure how to get this tool going.
-            cmd = 'ipmitool -I lanplus -H %s -U %s -p "%s"' % (node['pm_addr'],
+        if node['pm_type'] == "pxe_ssh":
+            LOG.debug("Identified virtual node")
+
+        if node['pm_type'] == "pxe_ipmitool":
+            LOG.debug("Identified baremetal node")
+
+            cmd = 'ipmitool -R 1 -I lanplus -H %s -U %s -P %s chassis status' % (node['pm_addr'],
                   node['pm_user'], node['pm_password'])
-            print("Executing:", cmd)
-            os.system(cmd)
+            LOG.debug("Executing: %s", cmd)
+            status = os.system(cmd)
+	    if status != 0:
+            	LOG.error('ERROR: ipmitool failed')
+		error_count += 1
+            baremetal_ips.append(node['pm_addr'])
+           
+    if not allUnique(baremetal_ips):
+        LOG.error('ERROR: Baremetals IPs are not all unique.')
+	error_count += 1
+    else:
+        LOG.debug('Baremetal IPs are all unique.')
 
     if not allUnique(maclist):
         LOG.error('ERROR: MAC addresses are not all unique.')
+	error_count += 1
+    else:        
+        LOG.debug('MAC addresses are all unique.')
+
+    print "\n--------------------"
+    if error_count == 0:
+        print('SUCCESS: instackenv validator found 0 errors')
+    else:
+        print('FAILURE: instackenv validator found %d errors' % error_count)
 
 
 if __name__ == "__main__":
