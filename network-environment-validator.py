@@ -40,10 +40,11 @@ def main():
         #LOG.debug('\n' + yaml.dump(network_data))
 
     for item in network_data['resource_registry']:
-        data = network_data['resource_registry'][item]
-        #LOG.debug(data)
-        LOG.info('Validating %s', data)
-        NIC_validate(item, data)
+        if item.endswith("Net::SoftwareConfig"):
+            data = network_data['resource_registry'][item]
+            #LOG.debug(data)
+            LOG.info('Validating %s', data)
+            NIC_validate(item, data)
 
     for item in network_data['parameter_defaults']:
         data = network_data['parameter_defaults'][item]
