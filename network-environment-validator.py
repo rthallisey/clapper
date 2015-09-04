@@ -3,7 +3,7 @@
 # python get-pip.py
 
 import argparse
-import ipaddress
+import netaddr
 import itertools
 import logging
 import sys
@@ -76,13 +76,13 @@ def check_cidr_overlap(networks):
     objs = []
     for x in networks:
         try:
-            objs += [ipaddress.ip_network(x.decode('utf-8'))]
+            objs += [netaddr.IPNetwork(x.decode('utf-8'))]
         except ValueError:
             LOG.error('Invalid address: %s', x)
             ERROR_COUNT = ERROR_COUNT + 1
 
     for net1, net2 in itertools.combinations(objs, 2):
-        if (net1.overlaps(net2)):
+        if (net1 in net2 or net2 in net1):
             LOG.error('Overlapping networks detected {} {}'.format(net1, net2))
             ERROR_COUNT += 1
 
@@ -93,14 +93,14 @@ def check_allocation_pools_pairing(filedata, pools):
         pooldata = filedata[poolitem]
 
         LOG.info('Checking allocation pool {}'.format(poolitem))
-        pool_objs = [ipaddress.summarize_address_range(
-            ipaddress.ip_address(x['start'].decode('utf-8')),
-            ipaddress.ip_address(x['end'].decode('utf-8'))) for x in
+        pool_objs = [netaddr.IPRange(
+            netaddr.IPAddress(x['start'].decode('utf-8')),
+            netaddr.IPAddress(x['end'].decode('utf-8'))) for x in
             pooldata]
 
         subnet_item = poolitem.split('AllocationPools')[0] + 'NetCidr'
         try:
-            subnet_obj = ipaddress.ip_network(
+            subnet_obj = netaddr.IPNetwork(
                 filedata[subnet_item].decode('utf-8'))
         except ValueError:
             LOG.error('Invalid address: %s', subnet_item)
@@ -108,7 +108,7 @@ def check_allocation_pools_pairing(filedata, pools):
 
         for ranges in pool_objs:
             for range in ranges:
-                if not subnet_obj.overlaps(range):
+                if not range in subnet_obj:
                     LOG.error('Allocation pool {} {} outside of subnet'
                               '{}: {}'.format(poolitem, pooldata, subnet_item,
                                               subnet_obj))
