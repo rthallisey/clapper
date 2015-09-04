@@ -99,7 +99,7 @@ def check_allocation_pools_pairing(filedata, pools):
             pooldata]
 
         subnet_item = poolitem.split('AllocationPools')[0] + 'NetCidr'
-	try:
+        try:
             subnet_obj = ipaddress.ip_network(
                 filedata[subnet_item].decode('utf-8'))
         except ValueError:
