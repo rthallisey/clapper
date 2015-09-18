@@ -1,0 +1,11 @@
+---
+- hosts: undercloud
+  tasks:
+  - name: Copy the bootif-fix script over
+    copy: src=files/bootif-fix dest=/usr/bin/bootif-fix mode=0755
+    become: yes
+  - name: Copy the systemd unit fix over
+    copy: src=files/bootif-service dest=/usr/lib/systemd/system/bootif-fix.service
+    become: yes
+  - name: Start the script
+    service: name=bootif-fix enabled=yes state=started
