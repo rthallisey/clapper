@@ -1,5 +1,8 @@
 ---
 - hosts: controller
+  vars:
+    metadata:
+      name: Running a custom module
   tasks:
   - name: Run a custom module
     mymod:

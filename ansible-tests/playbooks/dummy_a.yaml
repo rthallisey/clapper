@@ -1,5 +1,8 @@
 ---
 - hosts: overcloud
+  vars:
+    metadata:
+      name: Basic connectivity
   tasks:
   - name: Ping the nodes
     ping:

@@ -1,5 +1,8 @@
 ---
 - hosts: compute
+  vars:
+    metadata:
+      name: Install a package
   tasks:
   - include: tasks/mytask.yaml
   - name: Install gitweb

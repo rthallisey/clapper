@@ -3,18 +3,29 @@
 import sys
 import glob
 
+import yaml
+
+
 def die(msg):
     print msg
     sys.exit(1)
 
 def validations():
-    validations = glob.glob('playbooks/*.yaml')
-    return list(sorted(validations))
+    paths = glob.glob('playbooks/*.yaml')
+    result = []
+    for validation_path in sorted(paths):
+        with open(validation_path) as f:
+            validation = yaml.safe_load(f.read())
+            result.append({
+                'path': validation_path,
+                'name': validation[0]['vars']['metadata']['name']
+            })
+    return result
 
 
 def command_list(**args):
-    for i, name in enumerate(validations()):
-        print "%d. %s" % (i + 1, name)
+    for i, validation in enumerate(validations()):
+        print "%d. %s (%s)" % (i + 1, validation['name'], validation['path'])
 
 
 def command_run(*args):
@@ -27,11 +38,12 @@ def command_run(*args):
     if index < 0:
         die("Validation ID must be a positive number.")
     try:
-        validation_path = validations()[index]
+        validation = validations()[index]
     except IndexError:
         die("Invalid validation ID.")
         sys.exit(1)
-    print "Running validation '%s'" % validation_path
+    print "Running validation '%s'" % validation['name']
+
 
 def unknown_command(*args):
     die("Unknown command")
