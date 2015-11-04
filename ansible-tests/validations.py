@@ -1,7 +1,19 @@
 #!/usr/bin/env python
 
-import sys
 import glob
+import sys
+
+
+# Import explicitly in this order to fix the import issues:
+# https://bugzilla.redhat.com/show_bug.cgi?id=1065251
+import ansible.playbook
+import ansible.constants as C
+import ansible.utils.template
+from ansible import errors
+from ansible import callbacks
+from ansible import utils
+from ansible.color import ANSIBLE_COLOR, stringc
+from ansible.callbacks import display
 
 import yaml
 
@@ -21,6 +33,16 @@ def validations():
                 'name': validation[0]['vars']['metadata']['name']
             })
     return result
+
+
+def run_validation(validation):
+    playbook = ansible.playbook.PlayBook(
+        playbook=validation['path'],
+        host_list='hosts',  # TODO: shouldn't be hardcoded
+        stats=callbacks.AggregateStats(),
+        callbacks=callbacks.PlaybookCallbacks(),
+        runner_callbacks=callbacks.PlaybookRunnerCallbacks(stats=callbacks.AggregateStats()))
+    playbook.run()
 
 
 def command_list(**args):
@@ -43,6 +65,7 @@ def command_run(*args):
         die("Invalid validation ID.")
         sys.exit(1)
     print "Running validation '%s'" % validation['name']
+    run_validation(validation)
 
 
 def unknown_command(*args):
