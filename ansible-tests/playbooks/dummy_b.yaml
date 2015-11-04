@@ -1,5 +1,6 @@
 ---
 - hosts: compute
   tasks:
+  - include: tasks/mytask.yaml
   - name: Install gitweb
     yum: name=gitweb state=latest
