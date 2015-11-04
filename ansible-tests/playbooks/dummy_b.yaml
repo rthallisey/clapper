@@ -1,0 +1,5 @@
+---
+- hosts: compute
+  tasks:
+  - name: Install gitweb
+    yum: name=gitweb state=latest
