@@ -12,22 +12,18 @@ def die(msg):
 
 
 def command_list(**args):
-    for i, validation in enumerate(validations.get_all()):
-        print "%d. %s (%s)" % (i + 1, validation['name'], validation['path'])
+    for validation in validations.get_all().values():
+        print "%s. %s (%s)" % (validation['uuid'], validation['name'],
+                validation['path'])
 
 
 def command_run(*args):
     if len(args) != 1:
         die("You must pass one argument: the validation ID.")
+    uuid = args[0]
     try:
-        index = int(args[0]) - 1
-    except ValueError:
-        die("Validation ID must be a number.")
-    if index < 0:
-        die("Validation ID must be a positive number.")
-    try:
-        validation = validations.get_all()[index]
-    except IndexError:
+        validation = validations.get_all()[uuid]
+    except KeyError:
         die("Invalid validation ID.")
     print "Running validation '%s'" % validation['name']
     results = validations.run(validation)

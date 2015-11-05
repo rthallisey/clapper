@@ -19,14 +19,18 @@ import yaml
 
 def get_all():
     paths = glob.glob('playbooks/*.yaml')
-    result = []
-    for validation_path in sorted(paths):
+    result = {}
+    for index, validation_path in enumerate(sorted(paths)):
         with open(validation_path) as f:
             validation = yaml.safe_load(f.read())
-            result.append({
+            # TODO: switch to generating a proper UUID. We need to figure out
+            # how to make sure we always assign the same ID to the same test.
+            uuid = str(index + 1)
+            result[uuid] = {
+                'uuid': uuid,
                 'path': validation_path,
                 'name': validation[0]['vars']['metadata']['name']
-            })
+            }
     return result
 
 class SilentPlaybookCallbacks(object):
