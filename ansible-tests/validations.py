@@ -93,10 +93,8 @@ def run(validation):
         callbacks=playbook_callbacks,
         runner_callbacks=runner_callbacks)
     result = playbook.run()
-    print repr(result)
-    def success(status):
-        return status['failures'] == 0 and status['unreachable'] == 0
+
     for host, status in result.items():
-        status_msg = 'SUCCESS' if success(status) else 'FAILED'
-        print host, status_msg
-    print "Overall success:", all(success(status) for status in result.values())
+        success = status['failures'] == 0 and status['unreachable'] == 0
+        result[host]['success'] = success
+    return result

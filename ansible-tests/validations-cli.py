@@ -30,7 +30,14 @@ def command_run(*args):
     except IndexError:
         die("Invalid validation ID.")
     print "Running validation '%s'" % validation['name']
-    validations.run(validation)
+    results = validations.run(validation)
+    for host, status in results.items():
+        result_msg = 'SUCCESS' if status['success'] else 'FAILURE'
+        print host, result_msg
+    if all(status['success'] for status in results.values()):
+        print "Validation succeeded."
+    else:
+        print "Validation failed."
 
 
 def unknown_command(*args):
