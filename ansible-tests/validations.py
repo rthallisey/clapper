@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import glob
-import sys
 
 
 # Import explicitly in this order to fix the import issues:
@@ -18,11 +17,7 @@ from ansible.callbacks import display
 import yaml
 
 
-def die(msg):
-    print msg
-    sys.exit(1)
-
-def validations():
+def get_all():
     paths = glob.glob('playbooks/*.yaml')
     result = []
     for validation_path in sorted(paths):
@@ -75,7 +70,7 @@ class SilentPlaybookCallbacks(object):
 
 
 
-def run_validation(validation):
+def run(validation):
     stats = callbacks.AggregateStats()
     playbook_callbacks = SilentPlaybookCallbacks(verbose=utils.VERBOSITY)
     runner_callbacks = callbacks.DefaultRunnerCallbacks()
@@ -93,37 +88,3 @@ def run_validation(validation):
         status_msg = 'SUCCESS' if success(status) else 'FAILED'
         print host, status_msg
     print "Overall success:", all(success(status) for status in result.values())
-
-def command_list(**args):
-    for i, validation in enumerate(validations()):
-        print "%d. %s (%s)" % (i + 1, validation['name'], validation['path'])
-
-
-def command_run(*args):
-    if len(args) != 1:
-        die("You must pass one argument: the validation ID.")
-    try:
-        index = int(args[0]) - 1
-    except ValueError:
-        die("Validation ID must be a number.")
-    if index < 0:
-        die("Validation ID must be a positive number.")
-    try:
-        validation = validations()[index]
-    except IndexError:
-        die("Invalid validation ID.")
-        sys.exit(1)
-    print "Running validation '%s'" % validation['name']
-    run_validation(validation)
-
-
-def unknown_command(*args):
-    die("Unknown command")
-
-
-if __name__ == '__main__':
-    if len(sys.argv) <= 1:
-        die("You must enter a command")
-    command = sys.argv[1]
-    command_fn = globals().get('command_%s' % command, unknown_command)
-    command_fn(*sys.argv[2:])
