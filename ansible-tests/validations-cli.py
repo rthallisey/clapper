@@ -29,7 +29,6 @@ def command_run(*args):
         validation = validations.get_all()[index]
     except IndexError:
         die("Invalid validation ID.")
-        sys.exit(1)
     print "Running validation '%s'" % validation['name']
     validations.run(validation)
 
