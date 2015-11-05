@@ -6,5 +6,5 @@
   tasks:
   - name: Run a custom module
     mymod:
-  #- name: Exercise a failure module
-  #  myfail:
+  - name: Exercise a failure module
+    alwaysfail:
