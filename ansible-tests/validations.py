@@ -87,6 +87,7 @@ class SilentPlaybookCallbacks(object):
 
 
 def run(validation):
+    C.HOST_KEY_CHECKING = False
     stats = callbacks.AggregateStats()
     playbook_callbacks = SilentPlaybookCallbacks(verbose=utils.VERBOSITY)
     runner_callbacks = callbacks.DefaultRunnerCallbacks()
