@@ -5,6 +5,7 @@ import threading
 import uuid
 
 from flask import Flask, abort, json, make_response, url_for, request
+from flask.ext.cors import CORS
 
 import validations
 
@@ -13,6 +14,7 @@ DB_VALIDATIONS = {}  # TODO: OMG THREAD SAFETY
 
 
 app = Flask(__name__)
+CORS(app)
 
 
 def thread_run_validation(validation_id, validation_url):
