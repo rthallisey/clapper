@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
+import datetime
 import threading
+import uuid
 
 from flask import Flask, abort, json, make_response, url_for, request
 
@@ -13,21 +15,32 @@ DB_VALIDATIONS = {}  # TODO: OMG THREAD SAFETY
 app = Flask(__name__)
 
 
-def thread_run_validation(uuid):
+def thread_run_validation(validation_id, validation_url):
     global DB_VALIDATIONS
-    validation = validations.get_all()[uuid]
-    db_validation = DB_VALIDATIONS.setdefault(uuid, {})
+    validation = validations.get_all()[validation_id]
+    db_validation = DB_VALIDATIONS.setdefault(validation_id, {})
+    db_results = db_validation.setdefault('results', {})
     db_validation['status'] = 'running'
 
-    results = validations.run(validation)
-    # TODO: add timestamp to the results
-    success = all((result.get('success') for result in results.values()))
-    db_validation = DB_VALIDATIONS.setdefault(uuid, {})
+    result_id = str(uuid.uuid4())
+    # TODO: proper formatting
+    result_start_time = datetime.datetime.utcnow().isoformat() + 'Z'
+    new_result = {
+        'uuid': result_id,
+        'date': result_start_time,
+        'validation': validation_url,
+        'status': 'running',
+    }
+    db_results['uuid'] = new_result
+
+    validation_run_result = validations.run(validation)
+
+    db_results['uuid']['detailed_description'] = validation_run_result
+    success = all((result.get('success') for result in validation_run_result.values()))
     if success:
-        db_validation['status'] = 'success'
+        db_results['uuid']['status'] = 'success'
     else:
-        db_validation['status'] = 'failed'
-    db_validation.setdefault('results', []).append(results)
+        db_results['uuid']['status'] = 'failed'
 
 
 def json_response(code, result):
@@ -60,12 +73,19 @@ def show_validation(uuid):
     try:
         validation = validations.get_all()[uuid]
         db_validation = DB_VALIDATIONS.get(uuid, {})
+        db_results = db_validation.get('results', {});
 
+        results = sorted(db_results.values(), key=lambda r: r['date'])
+        if results:
+            latest_result = results[-1]
+            validation_status = latest_result.get('status', 'new')
+        else:
+            validation_status = 'new'
         return json_response(200, {
             'uuid': validation['uuid'],
             'ref': url_for('show_validation', uuid=uuid),
-            'status': db_validation.get('status', 'new'),
-            'results': db_validation.get('results', []),
+            'status': validation_status,
+            'results': db_results.values(),
         })
     except KeyError:
         return json_response(404, {})
@@ -74,7 +94,9 @@ def show_validation(uuid):
 @app.route('/v1/validations/<uuid>/run', methods=['PUT'])
 def run_validation(uuid):
     try:
-        validation = threading.Thread(target=thread_run_validation, args=(uuid,))
+        validation = threading.Thread(
+            target=thread_run_validation,
+            args=(uuid, url_for('show_validation', uuid=uuid)))
         validation.start()
         return json_response(204, {})
     except KeyError:
