@@ -11,7 +11,7 @@ TripleO Validation API and scripts
 ## Run the server
 
     $ source .venv/bin/activate
-    $ ./validations-api.py
+    $ ./validation-api.py
 
 
 ## Notes
