@@ -1,0 +1,37 @@
+<html>
+<head> <title>Validation API test</title> </head>
+<body>
+    <script src="//code.jquery.com/jquery-1.11.3.min.js"></script>
+    <h1>Validation API test page</h1>
+
+    <a id="list" href="#">List validations</a>
+    <a id="run" href="#">Run a validation</a>
+
+    <div id="results"></div>
+
+    <script type="text/javascript">
+        $("#list").on("click", function(e) {
+            $("#results").text("getting list data...");
+            $.ajax("http://localhost:5000/v1/validations/", {
+                type: 'GET',
+                success: function(data) {
+                    $("#results").text(JSON.stringify(data));
+                }
+            });
+        });
+        $("#run").on("click", function(e) {
+            $("#results").text("executing a run request...");
+            $.ajax("http://localhost:5000/v1/validations/1/run", {
+                type: 'PUT',
+                success: function(data) {
+                    $("#results").text(JSON.stringify("running"));
+                },
+                error: function(data) {
+                    $("#results").text("error");
+                }
+            });
+        });
+    </script>
+
+</body>
+</html>
