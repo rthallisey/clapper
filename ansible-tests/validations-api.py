@@ -11,6 +11,23 @@ DB_VALIDATIONS = {}  # TODO: OMG THREAD SAFETY
 app = Flask(__name__)
 
 
+def thread_run_validation(uuid):
+    global DB_VALIDATIONS
+    validation = validations.get_all()[uuid]
+    db_validation = DB_VALIDATIONS.setdefault(uuid, {})
+    db_validation['status'] = 'running'
+
+    results = validations.run(validation)
+    # TODO: add timestamp to the results
+    success = all((result.get('success') for result in results.values()))
+    db_validation = DB_VALIDATIONS.setdefault(uuid, {})
+    if success:
+        db_validation['status'] = 'success'
+    else:
+        db_validation['status'] = 'failed'
+    db_validation.setdefault('results', []).append(results)
+
+
 def json_response(code, result):
     # NOTE: flask.jsonify doesn't handle lists, so we need to do it manually:
     response = make_response(json.dumps(result), code)
@@ -54,22 +71,9 @@ def show_validation(uuid):
 
 @app.route('/v1/validations/<uuid>/run', methods=['PUT'])
 def run_validation(uuid):
-    global DB_VALIDATIONS
     try:
-        validation = validations.get_all()[uuid]
-        db_validation = DB_VALIDATIONS.setdefault(uuid, {})
-        db_validation['status'] = 'running'
-        # TODO: this blocks. Run it in the background
-        results = validations.run(validation)
-        # TODO: add timestamp to the results
-        success = all((result.get('success') for result in results.values()))
-        if success:
-            db_validation['status'] = 'success'
-        else:
-            db_validation['status'] = 'failed'
-        db_validation.setdefault('results', []).append(results)
-        #return json_response(204, results)
-        return json_response(200, results)
+        thread_run_validation(uuid)
+        return json_response(204, {})
     except KeyError:
         return json_response(404, {})
 
