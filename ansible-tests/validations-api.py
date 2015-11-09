@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import threading
+
 from flask import Flask, abort, json, make_response, url_for, request
 
 import validations
@@ -72,7 +74,8 @@ def show_validation(uuid):
 @app.route('/v1/validations/<uuid>/run', methods=['PUT'])
 def run_validation(uuid):
     try:
-        thread_run_validation(uuid)
+        validation = threading.Thread(target=thread_run_validation, args=(uuid,))
+        validation.start()
         return json_response(204, {})
     except KeyError:
         return json_response(404, {})
