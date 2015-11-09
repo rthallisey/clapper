@@ -20,7 +20,6 @@ def thread_run_validation(validation_id, validation_url):
     validation = validations.get_all()[validation_id]
     db_validation = DB_VALIDATIONS.setdefault(validation_id, {})
     db_results = db_validation.setdefault('results', {})
-    db_validation['status'] = 'running'
 
     result_id = str(uuid.uuid4())
     # TODO: proper formatting
@@ -31,16 +30,16 @@ def thread_run_validation(validation_id, validation_url):
         'validation': validation_url,
         'status': 'running',
     }
-    db_results['uuid'] = new_result
+    db_results[result_id] = new_result
 
     validation_run_result = validations.run(validation)
 
-    db_results['uuid']['detailed_description'] = validation_run_result
+    db_results[result_id]['detailed_description'] = validation_run_result
     success = all((result.get('success') for result in validation_run_result.values()))
     if success:
-        db_results['uuid']['status'] = 'success'
+        db_results[result_id]['status'] = 'success'
     else:
-        db_results['uuid']['status'] = 'failed'
+        db_results[result_id]['status'] = 'failed'
 
 
 def json_response(code, result):
@@ -85,7 +84,7 @@ def show_validation(uuid):
             'uuid': validation['uuid'],
             'ref': url_for('show_validation', uuid=uuid),
             'status': validation_status,
-            'results': db_results.values(),
+            'results': [url_for('show_validation_result', result_id=r['uuid']) for r in results],
         })
     except KeyError:
         return json_response(404, {})
@@ -101,6 +100,17 @@ def run_validation(uuid):
         return json_response(204, {})
     except KeyError:
         return json_response(404, {})
+
+
+@app.route('/v1/validation_results/<result_id>/')
+def show_validation_result(result_id):
+    global DB_VALIDATIONS
+    for validation in DB_VALIDATIONS.values():
+        for result in validation.get('results', {}).values():
+            print repr(result)
+            if result['uuid'] == result_id:
+                return json_response(200, result)
+    return json_response(404, {})
 
 
 app.run(debug=True)
