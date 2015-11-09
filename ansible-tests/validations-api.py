@@ -102,6 +102,16 @@ def run_validation(uuid):
         return json_response(404, {})
 
 
+@app.route('/v1/validation_results/')
+def list_validation_results():
+    global DB_VALIDATIONS
+    all_results = []
+    for validation in DB_VALIDATIONS.values():
+        all_results.extend(validation.get('results', {}).values())
+    all_results.sort(key=lambda x: x['date'])
+    return json_response(200, all_results)
+
+
 @app.route('/v1/validation_results/<result_id>/')
 def show_validation_result(result_id):
     global DB_VALIDATIONS
