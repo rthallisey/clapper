@@ -1,4 +1,12 @@
-ansible
-flask
-markupsafe
-flask-cors
+ansible==1.9.4
+ecdsa==0.13
+Flask==0.10.1
+Flask-Cors==2.1.2
+itsdangerous==0.24
+Jinja2==2.8
+MarkupSafe==0.23
+paramiko==1.15.4
+pycrypto==2.6.1
+PyYAML==3.11
+six==1.10.0
+Werkzeug==0.10.4
