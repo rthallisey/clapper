@@ -1,14 +1,31 @@
 TripleO Validation API and scripts
 ==================================
 
+
 ## Setup
 
+    $ cd ansible-tests/
     $ virtualenv --distribute .venv
     $ source .venv/bin/activate
     $ pip install -r requirements.txt
 
 
-## Run the server
+## Validatio scripts setup
+
+    $ source .venv/bin/activate
+    $ cp hosts.sample hosts
+
+Edit `hosts` and add some IP address for the "compute" and "controller" nodes,
+and set the SSH username correctly. Launching a few OpenStack VMs for this
+purpose is enough for testing.
+
+    $ export ANSIBLE_HOST_KEY_CHECKING=False
+    $ ansible-playbook -i hosts playbooks/dummy_a.yaml
+
+Verify that the test run and succeeds.
+
+
+## Run the API server
 
     $ source .venv/bin/activate
     $ ./validation-api.py
