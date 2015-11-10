@@ -6,6 +6,7 @@
 
     <a id="list" href="#">List validations</a>
     <a id="run" href="#">Run a validation</a>
+    <a id="show" href="#">Show the validation</a>
 
     <div id="results"></div>
 
@@ -25,6 +26,18 @@
                 type: 'PUT',
                 success: function(data) {
                     $("#results").text(JSON.stringify("running"));
+                },
+                error: function(data) {
+                    $("#results").text("error");
+                }
+            });
+        });
+        $("#show").on("click", function(e) {
+            $("#results").text("executing a run request...");
+            $.ajax("http://localhost:5000/v1/validations/1/", {
+                type: 'GET',
+                success: function(data) {
+                    $("#results").text(JSON.stringify(data));
                 },
                 error: function(data) {
                     $("#results").text("error");
