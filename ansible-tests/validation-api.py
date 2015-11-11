@@ -82,10 +82,12 @@ def show_validation(uuid):
             validation_status = latest_result.get('status', 'new')
         else:
             validation_status = 'new'
+            latest_result = None
         return json_response(200, {
             'uuid': validation['uuid'],
             'ref': url_for('show_validation', uuid=uuid),
             'status': validation_status,
+            'latest_result': latest_result,
             'results': [url_for('show_validation_result', result_id=r['uuid']) for r in results],
         })
     except KeyError:
