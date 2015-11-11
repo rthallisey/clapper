@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import glob
+from os import path
 
 
 # Import explicitly in this order to fix the import issues:
@@ -44,6 +45,43 @@ def get_all():
                 'description': get_validation_metadata(validation, 'description'),
             }
     return result
+
+def get_validation_types():
+    '''Loads all validation types and includes the related validations.'''
+    validation_type_directory = 'validation_types'
+    paths = glob.glob(path.join(validation_type_directory, '*.yaml'))
+    result = {}
+    all_validations = get_all().values()
+    for index, validation_type_path in enumerate(sorted(paths)):
+        with open(validation_type_path) as f:
+            validation_type = yaml.safe_load(f.read())
+            validation_type_uuid = str(index + 1)
+            validations = included_validation(
+                validation_type, validation_type_path, all_validations)
+            result[validation_type_uuid] = {
+                'uuid': validation_type_uuid,
+                'name': validation_type[0]['vars']['metadata']['name'],
+                'description': validation_type[0]['vars']['metadata']['description'],
+                'stage': validation_type[0]['vars']['metadata']['name'],
+                'validations': validations,
+            }
+    return result
+
+
+def included_validation(validation_type, validation_type_path, all_validations):
+    '''Returns all validations included in the validation_type.'''
+    validations = []
+    for entry in validation_type:
+        if 'include' in entry:
+            included_playbook_path = entry['include']
+            validation_type_directory = path.dirname(validation_type_path)
+            normalised_path = path.normpath(
+                path.join(validation_type_directory, included_playbook_path))
+            matching_validations = [validation for validation in all_validations
+                                    if validation['path'] == normalised_path]
+            if len(matching_validations) > 0:
+                validations.append(matching_validations[0])
+    return validations
 
 class SilentPlaybookCallbacks(object):
     ''' Unlike callbacks.PlaybookCallbacks this doesn't print to stdout. '''
