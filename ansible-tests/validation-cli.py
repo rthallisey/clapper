@@ -31,11 +31,17 @@ def command_run(*args):
 
 
 def unknown_command(*args):
-    die("Unknown command")
+    die("Unknown command. Available commands: {}".format(available_commands()))
+
+def is_command(function_name):
+    return function_name.startswith('command_')
+
+def available_commands(*args):
+    return [x[8:] for x in filter(is_command, globals().keys())]
 
 if __name__ == '__main__':
     if len(sys.argv) <= 1:
-        die("You must enter a command")
+        die("You must enter a command. Available commands: {}".format(available_commands()))
     command = sys.argv[1]
-    command_fn = globals().get('command_%s' % command, unknown_command)
-    command_fn(*sys.argv[2:])
+    function = globals().get('command_%s' % command, unknown_command)
+    function(*sys.argv[2:])
