@@ -19,7 +19,7 @@ CORS(app)
 
 def thread_run_validation(validation_id, validation_url):
     global DB_VALIDATIONS
-    validation = validations.get_all()[validation_id]
+    validation = validations.get_all_validations()[validation_id]
     db_validation = DB_VALIDATIONS.setdefault(validation_id, {})
     db_results = db_validation.setdefault('results', {})
 
@@ -65,7 +65,7 @@ def list_validations():
         'name': validation['name'],
         'description': validation['description'],
     }
-    for validation in validations.get_all().values()]
+    for validation in validations.get_all_validations().values()]
     return json_response(200, result)
 
 
@@ -73,7 +73,7 @@ def list_validations():
 def show_validation(uuid):
     global DB_VALIDATIONS
     try:
-        validation = validations.get_all()[uuid]
+        validation = validations.get_all_validations()[uuid]
         db_validation = DB_VALIDATIONS.get(uuid, {})
         db_results = db_validation.get('results', {});
 

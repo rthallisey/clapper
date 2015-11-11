@@ -29,7 +29,8 @@ def get_validation_metadata(validation, key):
     except KeyError:
         return DEFAULT_METADATA.get(key)
 
-def get_all():
+def get_all_validations():
+    '''Loads all validations.'''
     paths = glob.glob('playbooks/*.yaml')
     result = {}
     for index, validation_path in enumerate(sorted(paths)):
@@ -46,12 +47,12 @@ def get_all():
             }
     return result
 
-def get_validation_types():
+def get_all_validation_types():
     '''Loads all validation types and includes the related validations.'''
     validation_type_directory = 'validation_types'
     paths = glob.glob(path.join(validation_type_directory, '*.yaml'))
     result = {}
-    all_validations = get_all().values()
+    all_validations = get_all_validations().values()
     for index, validation_type_path in enumerate(sorted(paths)):
         with open(validation_type_path) as f:
             validation_type = yaml.safe_load(f.read())
