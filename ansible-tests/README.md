@@ -10,7 +10,7 @@ TripleO Validation API and scripts
     $ pip install -r requirements.txt
 
 
-## Validatio scripts setup
+## Validation scripts setup
 
     $ source .venv/bin/activate
     $ cp hosts.sample hosts
