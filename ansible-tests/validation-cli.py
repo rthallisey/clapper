@@ -3,7 +3,7 @@
 import sys
 import requests
 
-VALIDATION_SERVER = 'http://localhost:5000/v1/'
+VALIDATION_SERVER = 'http://localhost:5001/v1/'
 
 def die(msg):
     print msg
