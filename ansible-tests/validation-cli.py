@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 
-
 import sys
+import requests
 
-import validations
-
+VALIDATION_SERVER = 'http://localhost:5000/v1/'
 
 def die(msg):
     print msg
@@ -12,28 +11,23 @@ def die(msg):
 
 
 def command_list(**args):
-    for validation in validations.get_all().values():
-        print "%s. %s (%s)" % (validation['uuid'], validation['name'],
-                validation['path'])
-
+    resp = requests.get(VALIDATION_SERVER + 'validations/')
+    if resp.status_code != 200:
+        die('something went wrong')
+    for validation in resp.json():
+        print "%s. %s" % (validation['uuid'], validation['name'])
 
 def command_run(*args):
     if len(args) != 1:
         die("You must pass one argument: the validation ID.")
     uuid = args[0]
-    try:
-        validation = validations.get_all()[uuid]
-    except KeyError:
+    resp = requests.put(VALIDATION_SERVER + 'validations/' + uuid + '/run')
+    if resp.status_code == 404:
         die("Invalid validation ID.")
-    print "Running validation '%s'" % validation['name']
-    results = validations.run(validation)
-    for host, status in results.items():
-        result_msg = 'SUCCESS' if status['success'] else 'FAILURE'
-        print host, result_msg
-    if all(status['success'] for status in results.values()):
-        print "Validation succeeded."
-    else:
-        print "Validation failed."
+    elif resp.status_code != 204:
+        die("something went wrong")
+
+    print "Running validation '%s'" % uuid
 
 
 def unknown_command(*args):
