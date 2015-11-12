@@ -165,15 +165,17 @@ def show_validation_type(type_uuid):
 
 @app.route('/v1/validation_types/<type_uuid>/run', methods=['PUT'])
 def run_validation_type(type_uuid):
+    global DB_VALIDATIONS
     try:
         validation_type = validations.get_all_validation_types()[type_uuid]
     except KeyError:
         return json_response(404, {})
     for validation in validation_type['validations']:
-        validation_id = validation['uuid']
+        db_validation = DB_VALIDATIONS.setdefault(validation['uuid'], {})
+        validation['ref'] = url_for('show_validation', uuid=validation['uuid'])
         thread = threading.Thread(
             target=thread_run_validation,
-            args=(validation_id, url_for('show_validation', uuid=validation_id)))
+            args=(validation, None))
         thread.start()
     return json_response(204, {})
 
