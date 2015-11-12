@@ -46,6 +46,19 @@ def command_run(*args):
     print "Running validation '%s'" % uuid
 
 
+def command_get(*args):
+    if len(args) != 1:
+        die("You must pass one argument: the validation ID.")
+    uuid = args[0]
+    resp = requests.get(VALIDATION_SERVER + 'validations/' + uuid)
+    if resp.status_code == 404:
+        die("Invalid validation ID.")
+    elif resp.status_code != 200:
+        die("something went wrong")
+
+    print resp.json()
+
+
 def unknown_command(*args):
     die("Unknown command. Available commands: {}".format(available_commands()))
 
