@@ -79,7 +79,7 @@ def included_validation(validation_type, validation_type_path, all_validations):
             normalised_path = path.normpath(
                 path.join(validation_type_directory, included_playbook_path))
             matching_validations = [validation for validation in all_validations
-                                    if validation['path'] == normalised_path]
+                                    if validation['playbook'] == normalised_path]
             if len(matching_validations) > 0:
                 validations.append(matching_validations[0])
     return validations
