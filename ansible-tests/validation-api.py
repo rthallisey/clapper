@@ -17,10 +17,9 @@ app = Flask(__name__)
 CORS(app)
 
 
-def thread_run_validation(validation_id, validation_url):
+def thread_run_validation(validation, cancel_event):
     global DB_VALIDATIONS
-    validation = validations.get_all_validations()[validation_id]
-    db_validation = DB_VALIDATIONS.setdefault(validation_id, {})
+    db_validation = DB_VALIDATIONS[validation['uuid']]
     db_results = db_validation.setdefault('results', {})
 
     result_id = str(uuid.uuid4())
@@ -29,12 +28,12 @@ def thread_run_validation(validation_id, validation_url):
     new_result = {
         'uuid': result_id,
         'date': result_start_time,
-        'validation': validation_url,
+        'validation': validation['ref'],
         'status': 'running',
     }
     db_results[result_id] = new_result
 
-    validation_run_result = validations.run(validation)
+    validation_run_result = validations.run(validation, cancel_event)
 
     db_results[result_id]['detailed_description'] = validation_run_result
     success = all((result.get('success') for result in validation_run_result.values()))
@@ -95,16 +94,42 @@ def show_validation(uuid):
         return json_response(404, {})
 
 
-@app.route('/v1/validations/<uuid>/run', methods=['PUT'])
-def run_validation(uuid):
+@app.route('/v1/validations/<validation_id>/run', methods=['PUT'])
+def run_validation(validation_id):
     try:
-        validation = threading.Thread(
-            target=thread_run_validation,
-            args=(uuid, url_for('show_validation', uuid=uuid)))
-        validation.start()
-        return json_response(204, {})
+        validation = validations.get_all_validations()[validation_id]
+        validation['ref'] = url_for('show_validation', uuid=validation_id)
     except KeyError:
-        return json_response(404, {})
+        return json_response(404, {'error': "validation not found"})
+
+    global DB_VALIDATIONS
+    db_validation = DB_VALIDATIONS.setdefault(validation_id, {})
+    previous_thread = db_validation.get('current_thread', None)
+    if previous_thread and previous_thread.is_alive():
+        return json_response(400, {'error': "validation already running"})
+
+    cancel_event = threading.Event()
+    thread = threading.Thread(
+        target=thread_run_validation,
+        args=(validation, cancel_event))
+    thread.cancel_event = cancel_event
+    db_validation['current_thread'] = thread
+    thread.start()
+    return json_response(204, {})
+
+
+@app.route('/v1/validations/<validation_id>/stop', methods=['PUT'])
+def stop_validation(validation_id):
+    if validation_id not in validations.get_all_validations():
+        return json_response(404, {'error': "validation not found"})
+    global DB_VALIDATIONS
+    db_validation = DB_VALIDATIONS.setdefault(validation_id, {})
+    thread = db_validation.get('current_thread', None)
+    if thread and thread.is_alive():
+        thread.cancel_event.set()
+        return json_response(204, {})
+    else:
+        return json_response(400, {'error': "validation is not running"})
 
 
 @app.route('/v1/validation_types/')
@@ -168,7 +193,6 @@ def show_validation_result(result_id):
     global DB_VALIDATIONS
     for validation in DB_VALIDATIONS.values():
         for result in validation.get('results', {}).values():
-            print repr(result)
             if result['uuid'] == result_id:
                 return json_response(200, result)
     return json_response(404, {})

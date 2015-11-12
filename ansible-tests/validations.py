@@ -92,8 +92,8 @@ class ValidationCancelled(Exception):
 class SilentPlaybookCallbacks(object):
     ''' Unlike callbacks.PlaybookCallbacks this doesn't print to stdout. '''
 
-    def __init__(self, verbose=False):
-        self.cancel_validation = False
+    def __init__(self, cancel_event):
+        self.cancel_event = cancel_event
 
     def on_start(self):
         callbacks.call_callback_module('playbook_on_start')
@@ -110,7 +110,7 @@ class SilentPlaybookCallbacks(object):
     def on_task_start(self, name, is_conditional):
         callbacks.call_callback_module('playbook_on_task_start', name,
             is_conditional)
-        if self.cancel_validation:
+        if self.cancel_event and self.cancel_event.is_set():
             raise ValidationCancelled()
 
     def on_vars_prompt(self, varname, private=True, prompt=None, encrypt=None,
@@ -144,10 +144,10 @@ class SilentPlaybookCallbacks(object):
         callbacks.call_callback_module('playbook_on_stats', stats)
 
 
-def run(validation):
+def run(validation, cancel_event):
     C.HOST_KEY_CHECKING = False
     stats = callbacks.AggregateStats()
-    playbook_callbacks = SilentPlaybookCallbacks(verbose=utils.VERBOSITY)
+    playbook_callbacks = SilentPlaybookCallbacks(cancel_event)
     runner_callbacks = callbacks.DefaultRunnerCallbacks()
     playbook = ansible.playbook.PlayBook(
         playbook=validation['playbook'],
@@ -159,7 +159,6 @@ def run(validation):
         callbacks=playbook_callbacks,
         runner_callbacks=runner_callbacks)
     try:
-        #playbook.callbacks.cancel_validation = True
         result = playbook.run()
     except ValidationCancelled:
         result = {}
