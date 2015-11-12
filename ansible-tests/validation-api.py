@@ -63,6 +63,7 @@ def list_validations():
         'uuid': validation['uuid'],
         'ref': url_for('show_validation', uuid=validation['uuid']),
         'name': validation['name'],
+        'description': validation['description'],
     }
     for validation in validations.get_all().values()]
     return json_response(200, result)
