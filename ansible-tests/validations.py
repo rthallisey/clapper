@@ -16,6 +16,17 @@ from ansible.callbacks import display
 
 import yaml
 
+DEFAULT_METADATA = {
+    'name': 'Unnamed',
+    'description': 'No description',
+}
+
+
+def get_validation_metadata(validation, key):
+    try:
+        return validation[0]['vars']['metadata'][key]
+    except KeyError:
+        return DEFAULT_METADATA.get(key)
 
 def get_all():
     paths = glob.glob('playbooks/*.yaml')
@@ -28,8 +39,9 @@ def get_all():
             uuid = str(index + 1)
             result[uuid] = {
                 'uuid': uuid,
-                'path': validation_path,
-                'name': validation[0]['vars']['metadata']['name']
+                'playbook': validation_path,
+                'name': get_validation_metadata(validation, 'name'),
+                'description': get_validation_metadata(validation, 'description'),
             }
     return result
 
@@ -92,7 +104,7 @@ def run(validation):
     playbook_callbacks = SilentPlaybookCallbacks(verbose=utils.VERBOSITY)
     runner_callbacks = callbacks.DefaultRunnerCallbacks()
     playbook = ansible.playbook.PlayBook(
-        playbook=validation['path'],
+        playbook=validation['playbook'],
         host_list='hosts',  # TODO: shouldn't be hardcoded
         stats=stats,
         callbacks=playbook_callbacks,

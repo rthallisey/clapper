@@ -3,9 +3,9 @@
   vars:
     metadata:
       name: Basic connectivity
+      description: This is a ping test
   tasks:
   - name: Ping the nodes
     ping:
-  - include: tasks/mytask.yaml
   - name: Run an echo command
     command: echo Finished!
