@@ -84,6 +84,11 @@ def included_validation(validation_type, validation_type_path, all_validations):
                 validations.append(matching_validations[0])
     return validations
 
+
+class ValidationCancelled(Exception):
+    pass
+
+
 class SilentPlaybookCallbacks(object):
     ''' Unlike callbacks.PlaybookCallbacks this doesn't print to stdout. '''
 
@@ -105,6 +110,7 @@ class SilentPlaybookCallbacks(object):
     def on_task_start(self, name, is_conditional):
         callbacks.call_callback_module('playbook_on_task_start', name,
             is_conditional)
+        raise ValidationCancelled()
 
     def on_vars_prompt(self, varname, private=True, prompt=None, encrypt=None,
             confirm=False, salt_size=None, salt=None, default=None):
@@ -151,7 +157,16 @@ def run(validation):
         stats=stats,
         callbacks=playbook_callbacks,
         runner_callbacks=runner_callbacks)
-    result = playbook.run()
+    try:
+        result = playbook.run()
+    except ValidationCancelled:
+        result = {}
+        for host in playbook.inventory.list_hosts():
+            result[host] = {
+                'failures': 1,
+                'unreachable': 0,
+                'description': "Validation was cancelled.",
+            }
 
     for host, status in result.items():
         success = status['failures'] == 0 and status['unreachable'] == 0
