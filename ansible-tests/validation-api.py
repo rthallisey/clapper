@@ -107,6 +107,20 @@ def run_validation(uuid):
         return json_response(404, {})
 
 
+@app.route('/v1/validation_types/')
+def list_validation_types():
+    validation_types = validations.get_all_validation_types().values()
+    for validation_type in validation_types:
+        formatted_validations = [{
+            'uuid': validation['uuid'],
+            'ref': url_for('show_validation', uuid=validation['uuid']),
+            'name': validation['name'],
+        }
+        for validation in validation_type['validations']]
+        validation_type['validations'] = formatted_validations
+    return json_response(200, validation_types)
+
+
 @app.route('/v1/validation_results/')
 def list_validation_results():
     global DB_VALIDATIONS
