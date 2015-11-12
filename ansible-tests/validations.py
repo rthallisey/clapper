@@ -93,7 +93,7 @@ class SilentPlaybookCallbacks(object):
     ''' Unlike callbacks.PlaybookCallbacks this doesn't print to stdout. '''
 
     def __init__(self, verbose=False):
-        pass
+        self.cancel_validation = False
 
     def on_start(self):
         callbacks.call_callback_module('playbook_on_start')
@@ -110,7 +110,8 @@ class SilentPlaybookCallbacks(object):
     def on_task_start(self, name, is_conditional):
         callbacks.call_callback_module('playbook_on_task_start', name,
             is_conditional)
-        raise ValidationCancelled()
+        if self.cancel_validation:
+            raise ValidationCancelled()
 
     def on_vars_prompt(self, varname, private=True, prompt=None, encrypt=None,
             confirm=False, salt_size=None, salt=None, default=None):
@@ -158,6 +159,7 @@ def run(validation):
         callbacks=playbook_callbacks,
         runner_callbacks=runner_callbacks)
     try:
+        #playbook.callbacks.cancel_validation = True
         result = playbook.run()
     except ValidationCancelled:
         result = {}
