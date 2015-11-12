@@ -121,6 +121,38 @@ def list_validation_types():
     return json_response(200, validation_types)
 
 
+@app.route('/v1/validation_types/<type_uuid>/')
+def show_validation_type(type_uuid):
+    try:
+        validation_type = validations.get_all_validation_types()[type_uuid]
+    except KeyError:
+        return json_response(404, {})
+    formatted_validations = [{
+            'uuid': validation['uuid'],
+            'ref': url_for('show_validation', uuid=validation['uuid']),
+            'name': validation['name'],
+        }
+        for validation in validation_type['validations']
+    ]
+    validation_type['validations'] = formatted_validations
+    return json_response(200, validation_type)
+
+
+@app.route('/v1/validation_types/<type_uuid>/run', methods=['PUT'])
+def run_validation_type(type_uuid):
+    try:
+        validation_type = validations.get_all_validation_types()[type_uuid]
+    except KeyError:
+        return json_response(404, {})
+    for validation in validation_type['validations']:
+        validation_id = validation['uuid']
+        thread = threading.Thread(
+            target=thread_run_validation,
+            args=(validation_id, url_for('show_validation', uuid=validation_id)))
+        thread.start()
+    return json_response(204, {})
+
+
 @app.route('/v1/validation_results/')
 def list_validation_results():
     global DB_VALIDATIONS
