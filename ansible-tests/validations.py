@@ -105,7 +105,10 @@ def run(validation):
     runner_callbacks = callbacks.DefaultRunnerCallbacks()
     playbook = ansible.playbook.PlayBook(
         playbook=validation['playbook'],
-        host_list='hosts',  # TODO: shouldn't be hardcoded
+        # TODO we should use a dynamic inventory based on data coming from
+        # tripleo-common/heat/ironic
+        # http://docs.ansible.com/ansible/developing_api.html
+        host_list='hosts',
         stats=stats,
         callbacks=playbook_callbacks,
         runner_callbacks=runner_callbacks)
