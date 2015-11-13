@@ -10,7 +10,11 @@ from flask.ext.cors import CORS
 import validations
 
 
-DB_VALIDATIONS = {}  # TODO: OMG THREAD SAFETY
+DB = {
+    'validations': {},
+    'types': {},
+}
+DB_VALIDATIONS = DB['validations']  # TODO: OMG THREAD SAFETY
 
 
 app = Flask(__name__)
@@ -200,4 +204,21 @@ def show_validation_result(result_id):
     return json_response(404, {})
 
 
-app.run(debug=True, host='0.0.0.0', port=5001)
+if __name__ == '__main__':
+    # Prepare the "database":
+    all_validations = validations.get_all_validations().values()
+    all_validation_types = validations.get_all_validation_types().values()
+    for validation in all_validations:
+        validation['results'] = {}
+        validation['current_thread'] = None
+        DB_VALIDATIONS[validation['uuid']] = validation
+    for validation_type in all_validation_types:
+        validations = {}
+        for loaded_validation in validation_type['validations']:
+            validation_id = loaded_validation['uuid']
+            validations[validation_id] = DB_VALIDATIONS[validation_id]
+        validation_type['validations'] = validations
+        DB['types'][validation_type['uuid']] = validation_type
+
+    # Run the API server:
+    app.run(debug=True, host='0.0.0.0', port=5001)
