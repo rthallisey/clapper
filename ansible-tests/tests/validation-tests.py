@@ -20,7 +20,7 @@ class ValidationsTestCase(unittest.TestCase):
 
     def tearDown(self):
         # Ensure we run tests in isolation
-        validation_api.DB_VALIDATIONS = {}
+        validation_api.DB_VALIDATIONS = validation_api.DB['validations']
 
     def test_root(self):
         rv = self.app.get('/')
