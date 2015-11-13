@@ -21,30 +21,29 @@ app = Flask(__name__)
 CORS(app)
 
 
-def thread_run_validation(validation, cancel_event):
+def thread_run_validation(validation, validation_url, cancel_event):
     global DB_VALIDATIONS
-    db_validation = DB_VALIDATIONS[validation['uuid']]
-    db_results = db_validation.setdefault('results', {})
+    results = DB_VALIDATIONS[validation['uuid']]['results']
 
     result_id = str(uuid.uuid4())
-    # TODO: proper formatting
+    # TODO: proper datetime formatting
     result_start_time = datetime.datetime.utcnow().isoformat() + 'Z'
     new_result = {
         'uuid': result_id,
         'date': result_start_time,
-        'validation': validation['ref'],
+        'validation': validation_url,
         'status': 'running',
     }
-    db_results[result_id] = new_result
+    results[result_id] = new_result
 
     validation_run_result = validations.run(validation, cancel_event)
 
-    db_results[result_id]['detailed_description'] = validation_run_result
+    results[result_id]['detailed_description'] = validation_run_result
     success = all((result.get('success') for result in validation_run_result.values()))
     if success:
-        db_results[result_id]['status'] = 'success'
+        results[result_id]['status'] = 'success'
     else:
-        db_results[result_id]['status'] = 'failed'
+        results[result_id]['status'] = 'failed'
 
 
 def json_response(code, result):
@@ -62,13 +61,14 @@ def index():
 
 @app.route('/v1/validations/')
 def list_validations():
+    global DB_VALIDATIONS
     result = [{
-        'uuid': validation['uuid'],
-        'ref': url_for('show_validation', uuid=validation['uuid']),
-        'name': validation['name'],
-        'description': validation['description'],
-    }
-    for validation in validations.get_all_validations().values()]
+            'uuid': validation['uuid'],
+            'ref': url_for('show_validation', uuid=validation['uuid']),
+            'name': validation['name'],
+            'description': validation['description'],
+        }
+        for validation in DB_VALIDATIONS.values()]
     return json_response(200, result)
 
 
@@ -76,59 +76,59 @@ def list_validations():
 def show_validation(uuid):
     global DB_VALIDATIONS
     try:
-        validation = validations.get_all_validations()[uuid]
-        db_validation = DB_VALIDATIONS.get(uuid, {})
-        db_results = db_validation.get('results', {});
-
-        results = sorted(db_results.values(), key=lambda r: r['date'])
-        if results:
-            latest_result = results[-1]
-            validation_status = latest_result.get('status', 'new')
-        else:
-            validation_status = 'new'
-            latest_result = None
-        return json_response(200, {
-            'uuid': validation['uuid'],
-            'ref': url_for('show_validation', uuid=uuid),
-            'status': validation_status,
-            'latest_result': latest_result,
-            'results': [url_for('show_validation_result', result_id=r['uuid']) for r in results],
-        })
+        validation = DB_VALIDATIONS[uuid]
     except KeyError:
         return json_response(404, {})
+    results = validation['results']
+
+    sorted_results = sorted(results.values(), key=lambda r: r['date'])
+    if sorted_results:
+        latest_result = sorted_results[-1]
+        validation_status = latest_result.get('status', 'new')
+    else:
+        validation_status = 'new'
+        latest_result = None
+    return json_response(200, {
+        'uuid': validation['uuid'],
+        'ref': url_for('show_validation', uuid=uuid),
+        'status': validation_status,
+        'latest_result': latest_result,
+        'results': [url_for('show_validation_result', result_id=r['uuid'])
+                    for r in sorted_results],
+    })
 
 
 @app.route('/v1/validations/<validation_id>/run', methods=['PUT'])
 def run_validation(validation_id):
+    global DB_VALIDATIONS
     try:
-        validation = validations.get_all_validations()[validation_id]
-        validation['ref'] = url_for('show_validation', uuid=validation_id)
+        validation = DB_VALIDATIONS[validation_id]
     except KeyError:
         return json_response(404, {'error': "validation not found"})
 
-    global DB_VALIDATIONS
-    db_validation = DB_VALIDATIONS.setdefault(validation_id, {})
-    previous_thread = db_validation.get('current_thread', None)
+    previous_thread = validation['current_thread']
     if previous_thread and previous_thread.is_alive():
         return json_response(400, {'error': "validation already running"})
 
+    validation_url = url_for('show_validation', uuid=validation_id)
     cancel_event = threading.Event()
     thread = threading.Thread(
         target=thread_run_validation,
-        args=(validation, cancel_event))
+        args=(validation, validation_url, cancel_event))
     thread.cancel_event = cancel_event
-    db_validation['current_thread'] = thread
+    validation['current_thread'] = thread
     thread.start()
     return json_response(204, {})
 
 
 @app.route('/v1/validations/<validation_id>/stop', methods=['PUT'])
 def stop_validation(validation_id):
-    if validation_id not in validations.get_all_validations():
-        return json_response(404, {'error': "validation not found"})
     global DB_VALIDATIONS
-    db_validation = DB_VALIDATIONS.setdefault(validation_id, {})
-    thread = db_validation.get('current_thread', None)
+    try:
+        validation = DB_VALIDATIONS[validation_id]
+    except KeyError:
+        return json_response(404, {'error': "validation not found"})
+    thread = validation['current_thread']
     if thread and thread.is_alive():
         thread.cancel_event.set()
         return json_response(204, {})
@@ -138,22 +138,32 @@ def stop_validation(validation_id):
 
 @app.route('/v1/validation_types/')
 def list_validation_types():
-    validation_types = validations.get_all_validation_types().values()
+    global DB
+    validation_types = DB['types'].values()
+    result = []
     for validation_type in validation_types:
         formatted_validations = [{
-            'uuid': validation['uuid'],
-            'ref': url_for('show_validation', uuid=validation['uuid']),
-            'name': validation['name'],
+                'uuid': validation['uuid'],
+                'ref': url_for('show_validation', uuid=validation['uuid']),
+                'name': validation['name'],
+            }
+            for validation in validation_type['validations'].values()]
+        formatted_type = {
+            'uuid': validation_type['uuid'],
+            'ref': url_for('show_validation_type', type_uuid=validation_type['uuid']),
+            'name': validation_type['name'],
+            'description': validation_type['description'],
+            'validations': formatted_validations,
         }
-        for validation in validation_type['validations']]
-        validation_type['validations'] = formatted_validations
-    return json_response(200, validation_types)
+        result.append(formatted_type)
+    return json_response(200, result)
 
 
 @app.route('/v1/validation_types/<type_uuid>/')
 def show_validation_type(type_uuid):
+    global DB
     try:
-        validation_type = validations.get_all_validation_types()[type_uuid]
+        validation_type = DB['types'][type_uuid]
     except KeyError:
         return json_response(404, {})
     formatted_validations = [{
@@ -161,25 +171,29 @@ def show_validation_type(type_uuid):
             'ref': url_for('show_validation', uuid=validation['uuid']),
             'name': validation['name'],
         }
-        for validation in validation_type['validations']
-    ]
-    validation_type['validations'] = formatted_validations
-    return json_response(200, validation_type)
+        for validation in validation_type['validations'].values()]
+    formatted_type = {
+        'uuid': validation_type['uuid'],
+        'ref': url_for('show_validation_type', type_uuid=validation_type['uuid']),
+        'name': validation_type['name'],
+        'description': validation_type['description'],
+        'validations': formatted_validations,
+    }
+    return json_response(200, formatted_type)
 
 
 @app.route('/v1/validation_types/<type_uuid>/run', methods=['PUT'])
 def run_validation_type(type_uuid):
-    global DB_VALIDATIONS
+    global DB
     try:
-        validation_type = validations.get_all_validation_types()[type_uuid]
+        validation_type = DB['types'][type_uuid]
     except KeyError:
         return json_response(404, {})
-    for validation in validation_type['validations']:
-        db_validation = DB_VALIDATIONS.setdefault(validation['uuid'], {})
-        validation['ref'] = url_for('show_validation', uuid=validation['uuid'])
+    for validation in validation_type['validations'].values():
+        validation_url = url_for('show_validation', uuid=validation['uuid'])
         thread = threading.Thread(
             target=thread_run_validation,
-            args=(validation, None))
+            args=(validation, validation_url, None))
         thread.start()
     return json_response(204, {})
 
@@ -189,7 +203,7 @@ def list_validation_results():
     global DB_VALIDATIONS
     all_results = []
     for validation in DB_VALIDATIONS.values():
-        all_results.extend(validation.get('results', {}).values())
+        all_results.extend(validation['results'].values())
     all_results.sort(key=lambda x: x['date'])
     return json_response(200, all_results)
 
@@ -213,11 +227,11 @@ if __name__ == '__main__':
         validation['current_thread'] = None
         DB_VALIDATIONS[validation['uuid']] = validation
     for validation_type in all_validation_types:
-        validations = {}
+        included_validations = {}
         for loaded_validation in validation_type['validations']:
             validation_id = loaded_validation['uuid']
-            validations[validation_id] = DB_VALIDATIONS[validation_id]
-        validation_type['validations'] = validations
+            included_validations[validation_id] = DB_VALIDATIONS[validation_id]
+        validation_type['validations'] = included_validations
         DB['types'][validation_type['uuid']] = validation_type
 
     # Run the API server:
