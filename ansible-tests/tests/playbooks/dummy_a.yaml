@@ -1,0 +1,11 @@
+---
+- hosts: overcloud
+  vars:
+    metadata:
+      name: Basic connectivity
+      description: A simple ping test
+  tasks:
+  - name: Ping the nodes
+    ping:
+  - name: Run an echo command
+    command: echo Finished!

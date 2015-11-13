@@ -130,6 +130,7 @@ def stop_validation(validation_id):
         return json_response(404, {'error': "validation not found"})
     thread = validation['current_thread']
     if thread and thread.is_alive():
+        db_validation['results'].values()[-1]['status'] = 'canceled'
         thread.cancel_event.set()
         return json_response(204, {})
     else:
