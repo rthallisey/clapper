@@ -17,6 +17,19 @@ class ValidationsTestCase(unittest.TestCase):
     def setUp(self):
         validation_api.app.config['TESTING'] = True
         self.app = validation_api.app.test_client()
+        all_validations = validations.get_all_validations().values()
+        all_validation_types = validations.get_all_validation_types().values()
+        for validation in all_validations:
+            validation['results'] = {}
+            validation['current_thread'] = None
+            validation_api.DB_VALIDATIONS[validation['uuid']] = validation
+        for validation_type in all_validation_types:
+            included_validations = {}
+            for loaded_validation in validation_type['validations']:
+                validation_id = loaded_validation['uuid']
+                included_validations[validation_id] = validation_api.DB_VALIDATIONS[validation_id]
+            validation_type['validations'] = included_validations
+            validation_api.DB['types'][validation_type['uuid']] = validation_type
 
     def tearDown(self):
         # Ensure we run tests in isolation
@@ -86,7 +99,7 @@ class ValidationsTestCase(unittest.TestCase):
         rv = self.app.put('/v1/validations/1/run')
         self.assertEqual(rv.content_type, 'application/json')
         self.assertEqual(rv.status_code, 204)
-        time.sleep(0.1)  # XXX this is really ugly
+        time.sleep(0.01)  # XXX this is really ugly
         self.assertEqual(validations.run.call_count, 1)
 
     def test_run_unknown_validation(self):
@@ -97,6 +110,7 @@ class ValidationsTestCase(unittest.TestCase):
     def test_get_running_validation_content(self):
         validations.run = mock.Mock(side_effect=self.running_validation)
         self.app.put('/v1/validations/1/run')
+        time.sleep(0.01)
         rv = self.app.get('/v1/validations/1/')
         self.assertDictContainsSubset(
             {
@@ -107,6 +121,7 @@ class ValidationsTestCase(unittest.TestCase):
     def test_get_successful_validation_content(self):
         validations.run = mock.Mock(side_effect=self.passing_validation)
         self.app.put('/v1/validations/1/run')
+        time.sleep(0.01)
         rv = self.app.get('/v1/validations/1/')
         self.assertDictContainsSubset(
             {
@@ -117,6 +132,7 @@ class ValidationsTestCase(unittest.TestCase):
     def test_get_failed_validation_content(self):
         validations.run = mock.Mock(side_effect=self.failing_validation)
         self.app.put('/v1/validations/1/run')
+        time.sleep(0.01)
         rv = self.app.get('/v1/validations/1/')
         self.assertDictContainsSubset(
             {
@@ -127,9 +143,11 @@ class ValidationsTestCase(unittest.TestCase):
     def test_validation_stop_running(self):
         validations.run = mock.Mock(side_effect=self.running_validation)
         self.app.put('/v1/validations/1/run')
+        time.sleep(0.01)
         rv = self.app.put('/v1/validations/1/stop')
         self.assertEqual(rv.content_type, 'application/json')
         self.assertEqual(rv.status_code, 204)
+        time.sleep(0.01)
         rv = self.app.get('/v1/validations/1/')
         self.assertDictContainsSubset(
             {
