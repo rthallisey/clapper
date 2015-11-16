@@ -240,6 +240,18 @@ class ValidationTypesTestCase(ValidationAPITestCase):
                 'status': 'new',
             }, json_response(rv))
 
+    def test_get_success_validation_type_content(self):
+        validations.run = mock.Mock(side_effect=passing_validation)
+        self.app.put('/v1/validation_types/1/run')
+        wait_for_request_to_be_processed()
+
+        rv = self.app.get('/v1/validation_types/1/')
+        self.assertDictContainsSubset(
+            {
+                'uuid': '1',
+                'status': 'success',
+            }, json_response(rv))
+
 
 class ValidationResultsTestCase(ValidationAPITestCase):
 

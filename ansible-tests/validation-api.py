@@ -33,6 +33,7 @@ def prepare_database():
         included_validations = {}
         for loaded_validation in validation_type['validations']:
             validation_id = loaded_validation['uuid']
+            # XXX(mandre) we want a reference and not a copy
             included_validations[validation_id] = DB_VALIDATIONS[validation_id]
         validation_type['validations'] = included_validations
         DB['types'][validation_type['uuid']] = validation_type
