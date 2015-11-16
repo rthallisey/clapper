@@ -111,6 +111,7 @@ class ValidationsTestCase(ValidationAPITestCase):
         validations.run = mock.Mock(side_effect=running_validation)
         self.app.put('/v1/validations/1/run')
         wait_for_request_to_be_processed()
+
         rv = self.app.get('/v1/validations/1/')
         self.assertDictContainsSubset(
             {
@@ -122,6 +123,7 @@ class ValidationsTestCase(ValidationAPITestCase):
         validations.run = mock.Mock(side_effect=passing_validation)
         self.app.put('/v1/validations/1/run')
         wait_for_request_to_be_processed()
+
         rv = self.app.get('/v1/validations/1/')
         self.assertDictContainsSubset(
             {
@@ -133,6 +135,7 @@ class ValidationsTestCase(ValidationAPITestCase):
         validations.run = mock.Mock(side_effect=failing_validation)
         self.app.put('/v1/validations/1/run')
         wait_for_request_to_be_processed()
+
         rv = self.app.get('/v1/validations/1/')
         self.assertDictContainsSubset(
             {
@@ -144,10 +147,12 @@ class ValidationsTestCase(ValidationAPITestCase):
         validations.run = mock.Mock(side_effect=running_validation)
         self.app.put('/v1/validations/1/run')
         wait_for_request_to_be_processed()
+
         rv = self.app.put('/v1/validations/1/stop')
         self.assertEqual(rv.content_type, 'application/json')
         self.assertEqual(rv.status_code, 204)
         wait_for_request_to_be_processed()
+
         rv = self.app.get('/v1/validations/1/')
         self.assertDictContainsSubset(
             {
@@ -164,6 +169,22 @@ class ValidationsTestCase(ValidationAPITestCase):
         rv = self.app.put('/v1/validations/100/stop')
         self.assertEqual(rv.content_type, 'application/json')
         self.assertEqual(rv.status_code, 404)
+
+    def test_validation_rerun_running(self):
+        validations.run = mock.Mock(side_effect=running_validation)
+        self.app.put('/v1/validations/1/run')
+        wait_for_request_to_be_processed()
+
+        rv = self.app.put('/v1/validations/1/run')
+        self.assertEqual(rv.content_type, 'application/json')
+        self.assertEqual(rv.status_code, 400)
+
+        rv = self.app.get('/v1/validations/1/')
+        self.assertDictContainsSubset(
+            {
+                'uuid': '1',
+                'status': 'running',
+            }, json_response(rv))
 
 
 class ValidationTypesTestCase(ValidationAPITestCase):
@@ -231,6 +252,7 @@ class ValidationResultsTestCase(ValidationAPITestCase):
         validations.run = mock.Mock(side_effect=passing_validation)
         self.app.put('/v1/validations/1/run')
         wait_for_request_to_be_processed()
+
         rv = self.app.get('/v1/validation_results/')
         self.assertEqual(rv.content_type, 'application/json')
         self.assertEqual(len(json_response(rv)), 1)
