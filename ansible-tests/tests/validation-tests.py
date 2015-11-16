@@ -12,6 +12,19 @@ def json_response(response, code=200):
     return json.loads(response.data)
 
 
+def passing_validation(*args):
+    return { 'hostname': { 'success': True } }
+
+
+def failing_validation(*args):
+    return { 'hostname': { 'success': False } }
+
+
+def running_validation(*args):
+    time.sleep(0.1)
+    return {}
+
+
 class ValidationsTestCase(unittest.TestCase):
 
     def setUp(self):
@@ -84,18 +97,8 @@ class ValidationsTestCase(unittest.TestCase):
                 'results': [],
             }, json_response(rv))
 
-    def passing_validation(*args):
-        return { 'hostname': { 'success': True } }
-
-    def failing_validation(*args):
-        return { 'hostname': { 'success': False } }
-
-    def running_validation(*args):
-        time.sleep(0.1)
-        return {}
-
     def test_validation_run(self):
-        validations.run = mock.Mock(side_effect=self.passing_validation)
+        validations.run = mock.Mock(side_effect=passing_validation)
         rv = self.app.put('/v1/validations/1/run')
         self.assertEqual(rv.content_type, 'application/json')
         self.assertEqual(rv.status_code, 204)
@@ -108,7 +111,7 @@ class ValidationsTestCase(unittest.TestCase):
         json_response(rv, 404)
 
     def test_get_running_validation_content(self):
-        validations.run = mock.Mock(side_effect=self.running_validation)
+        validations.run = mock.Mock(side_effect=running_validation)
         self.app.put('/v1/validations/1/run')
         time.sleep(0.01)
         rv = self.app.get('/v1/validations/1/')
@@ -119,7 +122,7 @@ class ValidationsTestCase(unittest.TestCase):
             }, json_response(rv))
 
     def test_get_successful_validation_content(self):
-        validations.run = mock.Mock(side_effect=self.passing_validation)
+        validations.run = mock.Mock(side_effect=passing_validation)
         self.app.put('/v1/validations/1/run')
         time.sleep(0.01)
         rv = self.app.get('/v1/validations/1/')
@@ -130,7 +133,7 @@ class ValidationsTestCase(unittest.TestCase):
             }, json_response(rv))
 
     def test_get_failed_validation_content(self):
-        validations.run = mock.Mock(side_effect=self.failing_validation)
+        validations.run = mock.Mock(side_effect=failing_validation)
         self.app.put('/v1/validations/1/run')
         time.sleep(0.01)
         rv = self.app.get('/v1/validations/1/')
@@ -141,7 +144,7 @@ class ValidationsTestCase(unittest.TestCase):
             }, json_response(rv))
 
     def test_validation_stop_running(self):
-        validations.run = mock.Mock(side_effect=self.running_validation)
+        validations.run = mock.Mock(side_effect=running_validation)
         self.app.put('/v1/validations/1/run')
         time.sleep(0.01)
         rv = self.app.put('/v1/validations/1/stop')
