@@ -47,7 +47,15 @@ class ValidationsTestCase(ValidationAPITestCase):
 
     def test_root(self):
         rv = self.app.get('/')
-        self.assertIn('Print the API routes.', rv.data)
+        self.assertEqual(302, rv.status_code)
+        assert rv.location.endswith('/v1/')
+
+    def test_v1_root(self):
+        rv = self.app.get('/v1/')
+        json = json_response(rv)
+        self.assertIn('/v1/validations/', json)
+        self.assertIn('/v1/validation_types/', json)
+        self.assertIn('/v1/validation_results/', json)
 
     def test_list_validations(self):
         rv = self.app.get('/v1/validations/')

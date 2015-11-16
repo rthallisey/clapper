@@ -4,7 +4,7 @@ import datetime
 import threading
 import uuid
 
-from flask import Flask, abort, json, make_response, url_for, request
+from flask import Flask, abort, json, make_response, url_for, redirect, request
 from flask.ext.cors import CORS
 
 import validations
@@ -73,7 +73,22 @@ def json_response(code, result):
 
 @app.route('/')
 def index():
-    return json_response(200, {"TODO": "Print the API routes."})
+    return redirect(url_for('v1_index'))
+
+
+@app.route('/v1/')
+def v1_index():
+    return json_response(200, [
+        url_for('list_validations'),
+        url_for('show_validation', uuid='ID'),
+        url_for('run_validation', validation_id='ID'),
+        url_for('stop_validation', validation_id='ID'),
+        url_for('list_validation_types'),
+        url_for('show_validation_type', type_uuid='ID'),
+        url_for('run_validation_type', type_uuid='ID'),
+        url_for('list_validation_results'),
+        url_for('show_validation_result', result_id='ID'),
+    ])
 
 
 @app.route('/v1/validations/')
