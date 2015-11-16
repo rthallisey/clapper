@@ -170,6 +170,7 @@ def list_validation_types():
             'ref': url_for('show_validation_type', type_uuid=validation_type['uuid']),
             'name': validation_type['name'],
             'description': validation_type['description'],
+            'stage': validation_type['stage'],
             'validations': formatted_validations,
         }
         result.append(formatted_type)
@@ -194,6 +195,7 @@ def show_validation_type(type_uuid):
         'ref': url_for('show_validation_type', type_uuid=validation_type['uuid']),
         'name': validation_type['name'],
         'description': validation_type['description'],
+        'stage': validation_type['stage'],
         'validations': formatted_validations,
     }
     return json_response(200, formatted_type)

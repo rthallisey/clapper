@@ -1,0 +1,10 @@
+---
+- hosts: overcloud
+  vars:
+    metadata:
+      name: Network Configuration
+      description: >
+        Validations verify that the network was configured properly
+        on all nodes
+      stage: discovery
+- include: ../playbooks/dummy_c.yaml

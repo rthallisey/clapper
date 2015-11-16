@@ -1,0 +1,9 @@
+---
+- hosts: overcloud
+  vars:
+    metadata:
+      name: First validation type
+      description: The first validation type
+      stage: discovery
+- include: ../playbooks/dummy_a.yaml
+- include: ../playbooks/dummy_b.yaml

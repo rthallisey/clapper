@@ -20,6 +20,7 @@ import yaml
 DEFAULT_METADATA = {
     'name': 'Unnamed',
     'description': 'No description',
+    'stage': 'Default stage',
 }
 
 
@@ -61,9 +62,9 @@ def get_all_validation_types():
                 validation_type, validation_type_path, all_validations)
             result[validation_type_uuid] = {
                 'uuid': validation_type_uuid,
-                'name': validation_type[0]['vars']['metadata']['name'],
-                'description': validation_type[0]['vars']['metadata']['description'],
-                'stage': validation_type[0]['vars']['metadata']['name'],
+                'name': get_validation_metadata(validation_type, 'name'),
+                'description': get_validation_metadata(validation_type, 'description'),
+                'stage': get_validation_metadata(validation_type, 'stage'),
                 'validations': validations,
             }
     return result
