@@ -26,7 +26,6 @@ def prepare_database():
     all_validation_types = validations.get_all_validation_types().values()
     for validation in all_validations:
         validation['results'] = {}
-        validation['status'] = 'new'
         validation['current_thread'] = None
         DB_VALIDATIONS[validation['uuid']] = validation
     for validation_type in all_validation_types:
@@ -102,14 +101,12 @@ def show_validation(uuid):
     sorted_results = sorted(results.values(), key=lambda r: r['date'])
     if sorted_results:
         latest_result = sorted_results[-1]
-        validation_status = latest_result.get('status', 'new')
     else:
-        validation_status = 'new'
         latest_result = None
     return json_response(200, {
         'uuid': validation['uuid'],
         'ref': url_for('show_validation', uuid=uuid),
-        'status': validation_status,
+        'status': validation_status(validation),
         'latest_result': latest_result,
         'results': [url_for('show_validation_result', result_id=r['uuid'])
                     for r in sorted_results],
@@ -155,8 +152,16 @@ def stop_validation(validation_id):
         return json_response(400, {'error': "validation is not running"})
 
 
+def validation_status(validation):
+    sorted_results = sorted(validation['results'].values(), key=lambda r: r['date'])
+    if sorted_results:
+        return sorted_results[-1].get('status', 'new')
+    else:
+        return 'new'
+
+
 def aggregate_status(validation_type):
-    all_statuses = [k['status'] for k in validation_type['validations'].values()]
+    all_statuses = [validation_status(k) for k in validation_type['validations'].values()]
     if all(status == 'new' for status in all_statuses):
         return 'new'
     elif all(status == 'success' for status in all_statuses):
