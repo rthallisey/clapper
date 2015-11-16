@@ -26,6 +26,7 @@ def prepare_database():
     all_validation_types = validations.get_all_validation_types().values()
     for validation in all_validations:
         validation['results'] = {}
+        validation['status'] = 'new'
         validation['current_thread'] = None
         DB_VALIDATIONS[validation['uuid']] = validation
     for validation_type in all_validation_types:
@@ -153,27 +154,47 @@ def stop_validation(validation_id):
         return json_response(400, {'error': "validation is not running"})
 
 
+def aggregate_status(validation_type):
+    all_statuses = [k['status'] for k in validation_type['validations'].values()]
+    if all(status == 'new' for status in all_statuses):
+        return 'new'
+    elif all(status == 'success' for status in all_statuses):
+        return 'success'
+    elif any(status == 'canceled' for status in all_statuses):
+        return 'canceled'
+    elif any(status == 'failed' for status in all_statuses):
+        return 'failed'
+    elif any(status == 'running' for status in all_statuses):
+        return 'running'
+    else:
+        # Should never happen
+        return 'unknown'
+
+def formatted_validation_type(validation_type):
+    formatted_validations = [{
+            'uuid': validation['uuid'],
+            'ref': url_for('show_validation', uuid=validation['uuid']),
+            'name': validation['name'],
+        }
+        for validation in validation_type['validations'].values()]
+    return {
+        'uuid': validation_type['uuid'],
+        'ref': url_for('show_validation_type', type_uuid=validation_type['uuid']),
+        'name': validation_type['name'],
+        'description': validation_type['description'],
+        'stage': validation_type['stage'],
+        'status': aggregate_status(validation_type),
+        'validations': formatted_validations,
+    }
+
+
 @app.route('/v1/validation_types/')
 def list_validation_types():
     global DB
     validation_types = DB['types'].values()
     result = []
     for validation_type in validation_types:
-        formatted_validations = [{
-                'uuid': validation['uuid'],
-                'ref': url_for('show_validation', uuid=validation['uuid']),
-                'name': validation['name'],
-            }
-            for validation in validation_type['validations'].values()]
-        formatted_type = {
-            'uuid': validation_type['uuid'],
-            'ref': url_for('show_validation_type', type_uuid=validation_type['uuid']),
-            'name': validation_type['name'],
-            'description': validation_type['description'],
-            'stage': validation_type['stage'],
-            'validations': formatted_validations,
-        }
-        result.append(formatted_type)
+        result.append(formatted_validation_type(validation_type))
     return json_response(200, result)
 
 
@@ -184,21 +205,7 @@ def show_validation_type(type_uuid):
         validation_type = DB['types'][type_uuid]
     except KeyError:
         return json_response(404, {})
-    formatted_validations = [{
-            'uuid': validation['uuid'],
-            'ref': url_for('show_validation', uuid=validation['uuid']),
-            'name': validation['name'],
-        }
-        for validation in validation_type['validations'].values()]
-    formatted_type = {
-        'uuid': validation_type['uuid'],
-        'ref': url_for('show_validation_type', type_uuid=validation_type['uuid']),
-        'name': validation_type['name'],
-        'description': validation_type['description'],
-        'stage': validation_type['stage'],
-        'validations': formatted_validations,
-    }
-    return json_response(200, formatted_type)
+    return json_response(200, formatted_validation_type(validation_type))
 
 
 @app.route('/v1/validation_types/<type_uuid>/run', methods=['PUT'])

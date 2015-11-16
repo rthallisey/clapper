@@ -237,7 +237,7 @@ class ValidationTypesTestCase(ValidationAPITestCase):
         self.assertDictContainsSubset(
             {
                 'uuid': '1',
-                # 'status': 'new',
+                'status': 'new',
             }, json_response(rv))
 
 
