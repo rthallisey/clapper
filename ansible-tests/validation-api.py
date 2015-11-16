@@ -79,24 +79,24 @@ def index():
 @app.route('/v1/')
 def v1_index():
     return json_response(200, [
-        url_for('list_validations'),
-        url_for('show_validation', uuid='ID'),
-        url_for('run_validation', validation_id='ID'),
-        url_for('stop_validation', validation_id='ID'),
-        url_for('list_validation_types'),
-        url_for('show_validation_type', type_uuid='ID'),
-        url_for('run_validation_type', type_uuid='ID'),
-        url_for('list_validation_results'),
-        url_for('show_validation_result', result_id='ID'),
+        url_for('list_validations', plan_id='PLAN_ID'),
+        url_for('show_validation', plan_id='PLAN_ID', uuid='ID'),
+        url_for('run_validation', plan_id='PLAN_ID', validation_id='ID'),
+        url_for('stop_validation', plan_id='PLAN_ID', validation_id='ID'),
+        url_for('list_validation_types', plan_id='PLAN_ID'),
+        url_for('show_validation_type', plan_id='PLAN_ID', type_uuid='ID'),
+        url_for('run_validation_type', plan_id='PLAN_ID', type_uuid='ID'),
+        url_for('list_validation_results', plan_id='PLAN_ID'),
+        url_for('show_validation_result', plan_id='PLAN_ID', result_id='ID'),
     ])
 
 
-@app.route('/v1/validations/')
-def list_validations():
+@app.route('/v1/plans/<plan_id>/validations/')
+def list_validations(plan_id):
     global DB_VALIDATIONS
     result = [{
             'uuid': validation['uuid'],
-            'ref': url_for('show_validation', uuid=validation['uuid']),
+            'ref': url_for('show_validation', plan_id=plan_id, uuid=validation['uuid']),
             'name': validation['name'],
             'description': validation['description'],
         }
@@ -104,8 +104,8 @@ def list_validations():
     return json_response(200, result)
 
 
-@app.route('/v1/validations/<uuid>/')
-def show_validation(uuid):
+@app.route('/v1/plans/<plan_id>/validations/<uuid>/')
+def show_validation(plan_id, uuid):
     global DB_VALIDATIONS
     try:
         validation = DB_VALIDATIONS[uuid]
@@ -120,16 +120,16 @@ def show_validation(uuid):
         latest_result = None
     return json_response(200, {
         'uuid': validation['uuid'],
-        'ref': url_for('show_validation', uuid=uuid),
+        'ref': url_for('show_validation', plan_id=plan_id, uuid=uuid),
         'status': validation_status(validation),
         'latest_result': latest_result,
-        'results': [url_for('show_validation_result', result_id=r['uuid'])
+        'results': [url_for('show_validation_result', plan_id=plan_id, result_id=r['uuid'])
                     for r in sorted_results],
     })
 
 
-@app.route('/v1/validations/<validation_id>/run', methods=['PUT'])
-def run_validation(validation_id):
+@app.route('/v1/plans/<plan_id>/validations/<validation_id>/run', methods=['PUT'])
+def run_validation(plan_id, validation_id):
     global DB_VALIDATIONS
     try:
         validation = DB_VALIDATIONS[validation_id]
@@ -140,7 +140,7 @@ def run_validation(validation_id):
     if previous_thread and previous_thread.is_alive():
         return json_response(400, {'error': "validation already running"})
 
-    validation_url = url_for('show_validation', uuid=validation_id)
+    validation_url = url_for('show_validation', plan_id=plan_id, uuid=validation_id)
     cancel_event = threading.Event()
     thread = threading.Thread(
         target=thread_run_validation,
@@ -151,8 +151,8 @@ def run_validation(validation_id):
     return json_response(204, {})
 
 
-@app.route('/v1/validations/<validation_id>/stop', methods=['PUT'])
-def stop_validation(validation_id):
+@app.route('/v1/plans/<plan_id>/validations/<validation_id>/stop', methods=['PUT'])
+def stop_validation(plan_id, validation_id):
     global DB_VALIDATIONS
     try:
         validation = DB_VALIDATIONS[validation_id]
@@ -191,16 +191,16 @@ def aggregate_status(validation_type):
         # Should never happen
         return 'unknown'
 
-def formatted_validation_type(validation_type):
+def formatted_validation_type(validation_type, plan_id):
     formatted_validations = [{
             'uuid': validation['uuid'],
-            'ref': url_for('show_validation', uuid=validation['uuid']),
+            'ref': url_for('show_validation', plan_id=plan_id, uuid=validation['uuid']),
             'name': validation['name'],
         }
         for validation in validation_type['validations'].values()]
     return {
         'uuid': validation_type['uuid'],
-        'ref': url_for('show_validation_type', type_uuid=validation_type['uuid']),
+        'ref': url_for('show_validation_type', plan_id=plan_id, type_uuid=validation_type['uuid']),
         'name': validation_type['name'],
         'description': validation_type['description'],
         'stage': validation_type['stage'],
@@ -209,35 +209,35 @@ def formatted_validation_type(validation_type):
     }
 
 
-@app.route('/v1/validation_types/')
-def list_validation_types():
+@app.route('/v1/plans/<plan_id>/validation_types/')
+def list_validation_types(plan_id):
     global DB
     validation_types = DB['types'].values()
     result = []
     for validation_type in validation_types:
-        result.append(formatted_validation_type(validation_type))
+        result.append(formatted_validation_type(validation_type, plan_id))
     return json_response(200, result)
 
 
-@app.route('/v1/validation_types/<type_uuid>/')
-def show_validation_type(type_uuid):
+@app.route('/v1/plans/<plan_id>/validation_types/<type_uuid>/')
+def show_validation_type(plan_id, type_uuid):
     global DB
     try:
         validation_type = DB['types'][type_uuid]
     except KeyError:
         return json_response(404, {})
-    return json_response(200, formatted_validation_type(validation_type))
+    return json_response(200, formatted_validation_type(validation_type, plan_id))
 
 
-@app.route('/v1/validation_types/<type_uuid>/run', methods=['PUT'])
-def run_validation_type(type_uuid):
+@app.route('/v1/plans/<plan_id>/validation_types/<type_uuid>/run', methods=['PUT'])
+def run_validation_type(plan_id, type_uuid):
     global DB
     try:
         validation_type = DB['types'][type_uuid]
     except KeyError:
         return json_response(404, {})
     for validation in validation_type['validations'].values():
-        validation_url = url_for('show_validation', uuid=validation['uuid'])
+        validation_url = url_for('show_validation', plan_id=plan_id, uuid=validation['uuid'])
         thread = threading.Thread(
             target=thread_run_validation,
             args=(validation, validation_url, None))
@@ -245,8 +245,8 @@ def run_validation_type(type_uuid):
     return json_response(204, {})
 
 
-@app.route('/v1/validation_results/')
-def list_validation_results():
+@app.route('/v1/plans/<plan_id>/validation_results/')
+def list_validation_results(plan_id):
     global DB_VALIDATIONS
     all_results = []
     for validation in DB_VALIDATIONS.values():
@@ -255,8 +255,8 @@ def list_validation_results():
     return json_response(200, all_results)
 
 
-@app.route('/v1/validation_results/<result_id>/')
-def show_validation_result(result_id):
+@app.route('/v1/plans/<plan_id>/validation_results/<result_id>/')
+def show_validation_result(plan_id, result_id):
     global DB_VALIDATIONS
     for validation in DB_VALIDATIONS.values():
         for result in validation.get('results', {}).values():
