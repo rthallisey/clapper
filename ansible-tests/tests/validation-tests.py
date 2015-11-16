@@ -25,6 +25,12 @@ def running_validation(*args):
     return {}
 
 
+def wait_for_request_to_be_processed():
+    # Wait for a previous request to be processes
+    # This is an ugly hack to deal with concurency issues
+    time.sleep(0.001)
+
+
 class ValidationsTestCase(unittest.TestCase):
 
     def setUp(self):
@@ -90,7 +96,7 @@ class ValidationsTestCase(unittest.TestCase):
         rv = self.app.put('/v1/validations/1/run')
         self.assertEqual(rv.content_type, 'application/json')
         self.assertEqual(rv.status_code, 204)
-        time.sleep(0.01)  # XXX this is really ugly
+        wait_for_request_to_be_processed()
         self.assertEqual(validations.run.call_count, 1)
 
     def test_run_unknown_validation(self):
@@ -101,7 +107,7 @@ class ValidationsTestCase(unittest.TestCase):
     def test_get_running_validation_content(self):
         validations.run = mock.Mock(side_effect=running_validation)
         self.app.put('/v1/validations/1/run')
-        time.sleep(0.01)
+        wait_for_request_to_be_processed()
         rv = self.app.get('/v1/validations/1/')
         self.assertDictContainsSubset(
             {
@@ -112,7 +118,7 @@ class ValidationsTestCase(unittest.TestCase):
     def test_get_successful_validation_content(self):
         validations.run = mock.Mock(side_effect=passing_validation)
         self.app.put('/v1/validations/1/run')
-        time.sleep(0.01)
+        wait_for_request_to_be_processed()
         rv = self.app.get('/v1/validations/1/')
         self.assertDictContainsSubset(
             {
@@ -123,7 +129,7 @@ class ValidationsTestCase(unittest.TestCase):
     def test_get_failed_validation_content(self):
         validations.run = mock.Mock(side_effect=failing_validation)
         self.app.put('/v1/validations/1/run')
-        time.sleep(0.01)
+        wait_for_request_to_be_processed()
         rv = self.app.get('/v1/validations/1/')
         self.assertDictContainsSubset(
             {
@@ -134,11 +140,11 @@ class ValidationsTestCase(unittest.TestCase):
     def test_validation_stop_running(self):
         validations.run = mock.Mock(side_effect=running_validation)
         self.app.put('/v1/validations/1/run')
-        time.sleep(0.01)
+        wait_for_request_to_be_processed()
         rv = self.app.put('/v1/validations/1/stop')
         self.assertEqual(rv.content_type, 'application/json')
         self.assertEqual(rv.status_code, 204)
-        time.sleep(0.01)
+        wait_for_request_to_be_processed()
         rv = self.app.get('/v1/validations/1/')
         self.assertDictContainsSubset(
             {
