@@ -1,0 +1,3 @@
+---
+- hosts: overcloud
+- include: ../playbooks/dummy_c.yaml

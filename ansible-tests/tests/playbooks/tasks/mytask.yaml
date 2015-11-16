@@ -1,0 +1,3 @@
+---
+- name: Install git as an included task
+  yum: name=git state=present
