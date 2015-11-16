@@ -30,19 +30,7 @@ class ValidationsTestCase(unittest.TestCase):
     def setUp(self):
         validation_api.app.config['TESTING'] = True
         self.app = validation_api.app.test_client()
-        all_validations = validations.get_all_validations().values()
-        all_validation_types = validations.get_all_validation_types().values()
-        for validation in all_validations:
-            validation['results'] = {}
-            validation['current_thread'] = None
-            validation_api.DB_VALIDATIONS[validation['uuid']] = validation
-        for validation_type in all_validation_types:
-            included_validations = {}
-            for loaded_validation in validation_type['validations']:
-                validation_id = loaded_validation['uuid']
-                included_validations[validation_id] = validation_api.DB_VALIDATIONS[validation_id]
-            validation_type['validations'] = included_validations
-            validation_api.DB['types'][validation_type['uuid']] = validation_type
+        validation_api.prepare_database()
 
     def tearDown(self):
         # Ensure we run tests in isolation

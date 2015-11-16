@@ -21,6 +21,22 @@ app = Flask(__name__)
 CORS(app)
 
 
+def prepare_database():
+    all_validations = validations.get_all_validations().values()
+    all_validation_types = validations.get_all_validation_types().values()
+    for validation in all_validations:
+        validation['results'] = {}
+        validation['current_thread'] = None
+        DB_VALIDATIONS[validation['uuid']] = validation
+    for validation_type in all_validation_types:
+        included_validations = {}
+        for loaded_validation in validation_type['validations']:
+            validation_id = loaded_validation['uuid']
+            included_validations[validation_id] = DB_VALIDATIONS[validation_id]
+        validation_type['validations'] = included_validations
+        DB['types'][validation_type['uuid']] = validation_type
+
+
 def thread_run_validation(validation, validation_url, cancel_event):
     global DB_VALIDATIONS
     results = DB_VALIDATIONS[validation['uuid']]['results']
@@ -220,20 +236,7 @@ def show_validation_result(result_id):
 
 
 if __name__ == '__main__':
-    # Prepare the "database":
-    all_validations = validations.get_all_validations().values()
-    all_validation_types = validations.get_all_validation_types().values()
-    for validation in all_validations:
-        validation['results'] = {}
-        validation['current_thread'] = None
-        DB_VALIDATIONS[validation['uuid']] = validation
-    for validation_type in all_validation_types:
-        included_validations = {}
-        for loaded_validation in validation_type['validations']:
-            validation_id = loaded_validation['uuid']
-            included_validations[validation_id] = DB_VALIDATIONS[validation_id]
-        validation_type['validations'] = included_validations
-        DB['types'][validation_type['uuid']] = validation_type
+    prepare_database()
 
     # Run the API server:
     app.run(debug=True, host='0.0.0.0', port=5001)
