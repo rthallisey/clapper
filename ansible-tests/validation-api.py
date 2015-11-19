@@ -111,21 +111,7 @@ def show_validation(plan_id, uuid):
         validation = DB_VALIDATIONS[uuid]
     except KeyError:
         return json_response(404, {})
-    results = validation['results']
-
-    sorted_results = sorted(results.values(), key=lambda r: r['date'])
-    if sorted_results:
-        latest_result = sorted_results[-1]
-    else:
-        latest_result = None
-    return json_response(200, {
-        'uuid': validation['uuid'],
-        'ref': url_for('show_validation', plan_id=plan_id, uuid=uuid),
-        'status': validation_status(validation),
-        'latest_result': latest_result,
-        'results': [url_for('show_validation_result', plan_id=plan_id, result_id=r['uuid'])
-                    for r in sorted_results],
-    })
+    return json_response(200, formatted_validation(validation, plan_id))
 
 
 @app.route('/v1/plans/<plan_id>/validations/<validation_id>/run', methods=['PUT'])
@@ -190,6 +176,22 @@ def aggregate_status(validation_type):
     else:
         # Should never happen
         return 'unknown'
+
+def formatted_validation(validation, plan_id):
+    results = validation['results']
+    sorted_results = sorted(results.values(), key=lambda r: r['date'])
+    if sorted_results:
+        latest_result = sorted_results[-1]
+    else:
+        latest_result = None
+    return {
+        'uuid': validation['uuid'],
+        'ref': url_for('show_validation', plan_id=plan_id, uuid=validation['uuid']),
+        'status': validation_status(validation),
+        'latest_result': latest_result,
+        'results': [url_for('show_validation_result', plan_id=plan_id, result_id=r['uuid'])
+                    for r in sorted_results],
+    }
 
 def formatted_validation_type(validation_type, plan_id):
     formatted_validations = [{
