@@ -94,13 +94,8 @@ def v1_index():
 @app.route('/v1/plans/<plan_id>/validations/')
 def list_validations(plan_id):
     global DB_VALIDATIONS
-    result = [{
-            'uuid': validation['uuid'],
-            'ref': url_for('show_validation', plan_id=plan_id, uuid=validation['uuid']),
-            'name': validation['name'],
-            'description': validation['description'],
-        }
-        for validation in DB_VALIDATIONS.values()]
+    result = [formatted_validation(validation, plan_id)
+              for validation in DB_VALIDATIONS.values()]
     return json_response(200, result)
 
 
