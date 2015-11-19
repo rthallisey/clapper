@@ -182,6 +182,8 @@ def formatted_validation(validation, plan_id):
     return {
         'uuid': validation['uuid'],
         'ref': url_for('show_validation', plan_id=plan_id, uuid=validation['uuid']),
+        'name': validation['name'],
+        'description': validation['description'],
         'status': validation_status(validation),
         'latest_result': latest_result,
         'results': [url_for('show_validation_result', plan_id=plan_id, result_id=r['uuid'])
