@@ -189,12 +189,8 @@ def formatted_validation(validation, plan_id):
     }
 
 def formatted_validation_type(validation_type, plan_id):
-    formatted_validations = [{
-            'uuid': validation['uuid'],
-            'ref': url_for('show_validation', plan_id=plan_id, uuid=validation['uuid']),
-            'name': validation['name'],
-        }
-        for validation in validation_type['validations'].values()]
+    formatted_validations = [formatted_validation(validation, plan_id)
+                             for validation in validation_type['validations'].values()]
     return {
         'uuid': validation_type['uuid'],
         'ref': url_for('show_validation_type', plan_id=plan_id, type_uuid=validation_type['uuid']),
