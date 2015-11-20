@@ -23,19 +23,19 @@ CORS(app)
 
 def prepare_database():
     all_validations = validations.get_all_validations().values()
-    all_validation_types = validations.get_all_validation_types().values()
+    all_stages = validations.get_all_stages().values()
     for validation in all_validations:
         validation['results'] = {}
         validation['current_thread'] = None
         DB_VALIDATIONS[validation['uuid']] = validation
-    for validation_type in all_validation_types:
+    for stage in all_stages:
         included_validations = {}
-        for loaded_validation in validation_type['validations']:
+        for loaded_validation in stage['validations']:
             validation_id = loaded_validation['uuid']
             # XXX(mandre) we want a reference and not a copy
             included_validations[validation_id] = DB_VALIDATIONS[validation_id]
-        validation_type['validations'] = included_validations
-        DB['types'][validation_type['uuid']] = validation_type
+        stage['validations'] = included_validations
+        DB['types'][stage['uuid']] = stage
 
 
 def thread_run_validation(validation, validation_url, cancel_event, arguments):

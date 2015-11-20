@@ -32,7 +32,7 @@ def get_validation_metadata(validation, key):
 
 def get_all_validations():
     '''Loads all validations.'''
-    paths = glob.glob('playbooks/*.yaml')
+    paths = glob.glob('validations/*.yaml')
     result = {}
     for index, validation_path in enumerate(sorted(paths)):
         with open(validation_path) as f:
@@ -48,37 +48,35 @@ def get_all_validations():
             }
     return result
 
-def get_all_validation_types():
+def get_all_stages():
     '''Loads all validation types and includes the related validations.'''
-    validation_type_directory = 'validation_types'
-    paths = glob.glob(path.join(validation_type_directory, '*.yaml'))
+    paths = glob.glob('stages/*.yaml')
     result = {}
     all_validations = get_all_validations().values()
-    for index, validation_type_path in enumerate(sorted(paths)):
-        with open(validation_type_path) as f:
-            validation_type = yaml.safe_load(f.read())
-            validation_type_uuid = str(index + 1)
-            validations = included_validation(
-                validation_type, validation_type_path, all_validations)
-            result[validation_type_uuid] = {
-                'uuid': validation_type_uuid,
-                'name': get_validation_metadata(validation_type, 'name'),
-                'description': get_validation_metadata(validation_type, 'description'),
-                'stage': get_validation_metadata(validation_type, 'stage'),
+    for index, stage_path in enumerate(sorted(paths)):
+        with open(stage_path) as f:
+            stage = yaml.safe_load(f.read())
+            stage_uuid = str(index + 1)
+            validations = included_validation(stage, stage_path, all_validations)
+            result[stage_uuid] = {
+                'uuid': stage_uuid,
+                'name': get_validation_metadata(stage, 'name'),
+                'description': get_validation_metadata(stage, 'description'),
+                'stage': get_validation_metadata(stage, 'stage'),
                 'validations': validations,
             }
     return result
 
 
-def included_validation(validation_type, validation_type_path, all_validations):
+def included_validation(stage, stage_path, all_validations):
     '''Returns all validations included in the validation_type.'''
     validations = []
-    for entry in validation_type:
+    for entry in stage:
         if 'include' in entry:
             included_playbook_path = entry['include']
-            validation_type_directory = path.dirname(validation_type_path)
+            stage_directory = path.dirname(stage_path)
             normalised_path = path.normpath(
-                path.join(validation_type_directory, included_playbook_path))
+                path.join(stage_directory, included_playbook_path))
             matching_validations = [validation for validation in all_validations
                                     if validation['playbook'] == normalised_path]
             if len(matching_validations) > 0:
