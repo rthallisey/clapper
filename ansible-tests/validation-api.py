@@ -87,8 +87,8 @@ def v1_index():
         url_for('list_stages'),
         url_for('show_stage', stage_id='ID'),
         url_for('run_stage', stage_id='ID'),
-        url_for('list_validation_results'),
-        url_for('show_validation_result', result_id='ID'),
+        url_for('list_results'),
+        url_for('show_result', result_id='ID'),
     ])
 
 
@@ -190,7 +190,7 @@ def formatted_validation(validation):
         'ref': url_for('show_validation', validation_id=validation['uuid']),
         'status': validation_status(validation),
         'latest_result': latest_result,
-        'results': [url_for('show_validation_result', result_id=r['uuid'])
+        'results': [url_for('show_result', result_id=r['uuid'])
                     for r in sorted_results],
     }
 
@@ -247,8 +247,8 @@ def run_stage(stage_id):
     return json_response(204, {})
 
 
-@app.route('/v1/validation_results/')
-def list_validation_results():
+@app.route('/v1/results/')
+def list_results():
     global DB_VALIDATIONS
     all_results = []
     for validation in DB_VALIDATIONS.values():
@@ -257,8 +257,8 @@ def list_validation_results():
     return json_response(200, all_results)
 
 
-@app.route('/v1/validation_results/<result_id>/')
-def show_validation_result(result_id):
+@app.route('/v1/results/<result_id>/')
+def show_result(result_id):
     global DB_VALIDATIONS
     for validation in DB_VALIDATIONS.values():
         for result in validation.get('results', {}).values():

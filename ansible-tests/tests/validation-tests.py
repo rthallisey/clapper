@@ -55,7 +55,7 @@ class ValidationsTestCase(ValidationAPITestCase):
         json = json_response(rv)
         self.assertIn('/v1/validations/', json)
         self.assertIn('/v1/stages/', json)
-        self.assertIn('/v1/validation_results/', json)
+        self.assertIn('/v1/results/', json)
 
     def test_list_validations(self):
         rv = self.app.get('/v1/validations/')
@@ -289,7 +289,7 @@ class ValidationTypesTestCase(ValidationAPITestCase):
 class ValidationResultsTestCase(ValidationAPITestCase):
 
     def test_list_validation_results_empty(self):
-        rv = self.app.get('/v1/validation_results/')
+        rv = self.app.get('/v1/results/')
         self.assertEqual(rv.content_type, 'application/json')
         self.assertEqual(len(json_response(rv)), 0)
 
@@ -298,7 +298,7 @@ class ValidationResultsTestCase(ValidationAPITestCase):
         self.app.put('/v1/validations/1/run')
         wait_for_request_to_be_processed()
 
-        rv = self.app.get('/v1/validation_results/')
+        rv = self.app.get('/v1/results/')
         self.assertEqual(rv.content_type, 'application/json')
         self.assertEqual(len(json_response(rv)), 1)
 
@@ -375,7 +375,7 @@ class ValidationResultsTestCase(ValidationAPITestCase):
         self.assertEqual(json, validation['latest_result'])
 
     def test_unknown_validation_result(self):
-        rv = self.app.get('/v1/validation_results/100/')
+        rv = self.app.get('/v1/results/100/')
         self.assertEqual(rv.content_type, 'application/json')
         self.assertEqual(rv.status_code, 404)
 

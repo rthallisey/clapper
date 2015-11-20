@@ -18,7 +18,7 @@ def command_list(**args):
         print "%s. %s" % (validation['uuid'], validation['name'])
 
 def command_results(**args):
-    resp = requests.get(VALIDATION_SERVER + 'validation_results/')
+    resp = requests.get(VALIDATION_SERVER + 'results/')
     if resp.status_code != 200:
         die('something went wrong')
     for result in resp.json():
