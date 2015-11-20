@@ -53,17 +53,17 @@ class ValidationsTestCase(ValidationAPITestCase):
     def test_v1_root(self):
         rv = self.app.get('/v1/')
         json = json_response(rv)
-        self.assertIn('/v1/plans/PLAN_ID/validations/', json)
-        self.assertIn('/v1/plans/PLAN_ID/validation_types/', json)
-        self.assertIn('/v1/plans/PLAN_ID/validation_results/', json)
+        self.assertIn('/v1/validations/', json)
+        self.assertIn('/v1/validation_types/', json)
+        self.assertIn('/v1/validation_results/', json)
 
     def test_list_validations(self):
-        rv = self.app.get('/v1/plans/PLAN_ID/validations/')
+        rv = self.app.get('/v1/validations/')
         self.assertEqual(rv.content_type, 'application/json')
         self.assertEqual(len(json_response(rv)), 3)
 
     def test_list_validations_content(self):
-        rv = self.app.get('/v1/plans/PLAN_ID/validations/')
+        rv = self.app.get('/v1/validations/')
         json = json_response(rv)[0]
         self.assertDictContainsSubset(
             {
@@ -73,7 +73,7 @@ class ValidationsTestCase(ValidationAPITestCase):
             }, json)
 
     def test_list_validations_missing_metadata(self):
-        rv = self.app.get('/v1/plans/PLAN_ID/validations/')
+        rv = self.app.get('/v1/validations/')
         json = json_response(rv)[2]
         self.assertDictContainsSubset(
             {
@@ -83,17 +83,17 @@ class ValidationsTestCase(ValidationAPITestCase):
             }, json)
 
     def test_get_validation(self):
-        rv = self.app.get('/v1/plans/PLAN_ID/validations/1/')
+        rv = self.app.get('/v1/validations/1/')
         self.assertEqual(rv.content_type, 'application/json')
         json_response(rv)
 
     def test_get_unknown_validation(self):
-        rv = self.app.get('/v1/plans/PLAN_ID/validations/100/')
+        rv = self.app.get('/v1/validations/100/')
         self.assertEqual(rv.content_type, 'application/json')
         json_response(rv, 404)
 
     def test_get_new_validation_content(self):
-        rv = self.app.get('/v1/plans/PLAN_ID/validations/1/')
+        rv = self.app.get('/v1/validations/1/')
         self.assertDictContainsSubset(
             {
                 'uuid': '1',
@@ -104,23 +104,31 @@ class ValidationsTestCase(ValidationAPITestCase):
 
     def test_validation_run(self):
         validations.run = mock.Mock(side_effect=passing_validation)
-        rv = self.app.put('/v1/plans/PLAN_ID/validations/1/run')
+        rv = self.app.put('/v1/validations/1/run')
+        self.assertEqual(rv.content_type, 'application/json')
+        self.assertEqual(rv.status_code, 204)
+        wait_for_request_to_be_processed()
+        self.assertEqual(validations.run.call_count, 1)
+
+    def test_validation_run_with_plan(self):
+        validations.run = mock.Mock(side_effect=passing_validation)
+        rv = self.app.put('/v1/validations/1/run?plan_id=ID')
         self.assertEqual(rv.content_type, 'application/json')
         self.assertEqual(rv.status_code, 204)
         wait_for_request_to_be_processed()
         self.assertEqual(validations.run.call_count, 1)
 
     def test_run_unknown_validation(self):
-        rv = self.app.put('/v1/plans/PLAN_ID/validations/100/run')
+        rv = self.app.put('/v1/validations/100/run')
         self.assertEqual(rv.content_type, 'application/json')
         json_response(rv, 404)
 
     def test_get_running_validation_content(self):
         validations.run = mock.Mock(side_effect=running_validation)
-        self.app.put('/v1/plans/PLAN_ID/validations/1/run')
+        self.app.put('/v1/validations/1/run')
         wait_for_request_to_be_processed()
 
-        rv = self.app.get('/v1/plans/PLAN_ID/validations/1/')
+        rv = self.app.get('/v1/validations/1/')
         self.assertDictContainsSubset(
             {
                 'uuid': '1',
@@ -129,10 +137,10 @@ class ValidationsTestCase(ValidationAPITestCase):
 
     def test_get_successful_validation_content(self):
         validations.run = mock.Mock(side_effect=passing_validation)
-        self.app.put('/v1/plans/PLAN_ID/validations/1/run')
+        self.app.put('/v1/validations/1/run')
         wait_for_request_to_be_processed()
 
-        rv = self.app.get('/v1/plans/PLAN_ID/validations/1/')
+        rv = self.app.get('/v1/validations/1/')
         self.assertDictContainsSubset(
             {
                 'uuid': '1',
@@ -141,10 +149,10 @@ class ValidationsTestCase(ValidationAPITestCase):
 
     def test_get_failed_validation_content(self):
         validations.run = mock.Mock(side_effect=failing_validation)
-        self.app.put('/v1/plans/PLAN_ID/validations/1/run')
+        self.app.put('/v1/validations/1/run')
         wait_for_request_to_be_processed()
 
-        rv = self.app.get('/v1/plans/PLAN_ID/validations/1/')
+        rv = self.app.get('/v1/validations/1/')
         self.assertDictContainsSubset(
             {
                 'uuid': '1',
@@ -153,15 +161,32 @@ class ValidationsTestCase(ValidationAPITestCase):
 
     def test_validation_stop_running(self):
         validations.run = mock.Mock(side_effect=running_validation)
-        self.app.put('/v1/plans/PLAN_ID/validations/1/run')
+        self.app.put('/v1/validations/1/run')
         wait_for_request_to_be_processed()
 
-        rv = self.app.put('/v1/plans/PLAN_ID/validations/1/stop')
+        rv = self.app.put('/v1/validations/1/stop')
         self.assertEqual(rv.content_type, 'application/json')
         self.assertEqual(rv.status_code, 204)
         wait_for_request_to_be_processed()
 
-        rv = self.app.get('/v1/plans/PLAN_ID/validations/1/')
+        rv = self.app.get('/v1/validations/1/')
+        self.assertDictContainsSubset(
+            {
+                'uuid': '1',
+                'status': 'canceled',
+            }, json_response(rv))
+
+    def test_validation_stop_running_with_plan(self):
+        validations.run = mock.Mock(side_effect=running_validation)
+        self.app.put('/v1/validations/1/run?plan_id=ID')
+        wait_for_request_to_be_processed()
+
+        rv = self.app.put('/v1/validations/1/stop?plan_id=ID')
+        self.assertEqual(rv.content_type, 'application/json')
+        self.assertEqual(rv.status_code, 204)
+        wait_for_request_to_be_processed()
+
+        rv = self.app.get('/v1/validations/1/')
         self.assertDictContainsSubset(
             {
                 'uuid': '1',
@@ -169,25 +194,25 @@ class ValidationsTestCase(ValidationAPITestCase):
             }, json_response(rv))
 
     def test_validation_stop_non_running(self):
-        rv = self.app.put('/v1/plans/PLAN_ID/validations/1/stop')
+        rv = self.app.put('/v1/validations/1/stop')
         self.assertEqual(rv.content_type, 'application/json')
         self.assertEqual(rv.status_code, 400)
 
     def test_validation_stop_unknown(self):
-        rv = self.app.put('/v1/plans/PLAN_ID/validations/100/stop')
+        rv = self.app.put('/v1/validations/100/stop')
         self.assertEqual(rv.content_type, 'application/json')
         self.assertEqual(rv.status_code, 404)
 
     def test_validation_rerun_running(self):
         validations.run = mock.Mock(side_effect=running_validation)
-        self.app.put('/v1/plans/PLAN_ID/validations/1/run')
+        self.app.put('/v1/validations/1/run')
         wait_for_request_to_be_processed()
 
-        rv = self.app.put('/v1/plans/PLAN_ID/validations/1/run')
+        rv = self.app.put('/v1/validations/1/run')
         self.assertEqual(rv.content_type, 'application/json')
         self.assertEqual(rv.status_code, 400)
 
-        rv = self.app.get('/v1/plans/PLAN_ID/validations/1/')
+        rv = self.app.get('/v1/validations/1/')
         self.assertDictContainsSubset(
             {
                 'uuid': '1',
@@ -198,12 +223,12 @@ class ValidationsTestCase(ValidationAPITestCase):
 class ValidationTypesTestCase(ValidationAPITestCase):
 
     def test_list_validation_types(self):
-        rv = self.app.get('/v1/plans/PLAN_ID/validation_types/')
+        rv = self.app.get('/v1/validation_types/')
         self.assertEqual(rv.content_type, 'application/json')
         self.assertEqual(len(json_response(rv)), 3)
 
     def test_list_validation_types_content(self):
-        rv = self.app.get('/v1/plans/PLAN_ID/validation_types/')
+        rv = self.app.get('/v1/validation_types/')
         json = json_response(rv)[0]
         self.assertDictContainsSubset(
             {
@@ -215,12 +240,12 @@ class ValidationTypesTestCase(ValidationAPITestCase):
         self.assertDictContainsSubset(
             {
                 'uuid': '1',
-                'ref': '/v1/plans/PLAN_ID/validations/1/',
+                'ref': '/v1/validations/1/',
                 'name': 'Basic connectivity',
             }, json['validations'][0])
 
     def test_list_validation_typess_missing_metadata(self):
-        rv = self.app.get('/v1/plans/PLAN_ID/validation_types/')
+        rv = self.app.get('/v1/validation_types/')
         json = json_response(rv)[1]
         self.assertDictContainsSubset(
             {
@@ -231,17 +256,17 @@ class ValidationTypesTestCase(ValidationAPITestCase):
             }, json)
 
     def test_get_validation_type(self):
-        rv = self.app.get('/v1/plans/PLAN_ID/validation_types/1/')
+        rv = self.app.get('/v1/validation_types/1/')
         self.assertEqual(rv.content_type, 'application/json')
         json_response(rv)
 
     def test_get_unknown_validation_type(self):
-        rv = self.app.get('/v1/plans/PLAN_ID/validation_types/100/')
+        rv = self.app.get('/v1/validation_types/100/')
         self.assertEqual(rv.content_type, 'application/json')
         json_response(rv, 404)
 
     def test_get_new_validation_type_content(self):
-        rv = self.app.get('/v1/plans/PLAN_ID/validation_types/1/')
+        rv = self.app.get('/v1/validation_types/1/')
         self.assertDictContainsSubset(
             {
                 'uuid': '1',
@@ -250,10 +275,10 @@ class ValidationTypesTestCase(ValidationAPITestCase):
 
     def test_get_success_validation_type_content(self):
         validations.run = mock.Mock(side_effect=passing_validation)
-        self.app.put('/v1/plans/PLAN_ID/validation_types/1/run')
+        self.app.put('/v1/validation_types/1/run')
         wait_for_request_to_be_processed()
 
-        rv = self.app.get('/v1/plans/PLAN_ID/validation_types/1/')
+        rv = self.app.get('/v1/validation_types/1/')
         self.assertDictContainsSubset(
             {
                 'uuid': '1',
@@ -264,24 +289,24 @@ class ValidationTypesTestCase(ValidationAPITestCase):
 class ValidationResultsTestCase(ValidationAPITestCase):
 
     def test_list_validation_results_empty(self):
-        rv = self.app.get('/v1/plans/PLAN_ID/validation_results/')
+        rv = self.app.get('/v1/validation_results/')
         self.assertEqual(rv.content_type, 'application/json')
         self.assertEqual(len(json_response(rv)), 0)
 
     def test_list_validation_results(self):
         validations.run = mock.Mock(side_effect=passing_validation)
-        self.app.put('/v1/plans/PLAN_ID/validations/1/run')
+        self.app.put('/v1/validations/1/run')
         wait_for_request_to_be_processed()
 
-        rv = self.app.get('/v1/plans/PLAN_ID/validation_results/')
+        rv = self.app.get('/v1/validation_results/')
         self.assertEqual(rv.content_type, 'application/json')
         self.assertEqual(len(json_response(rv)), 1)
 
     def test_passing_validation_result(self):
         validations.run = mock.Mock(side_effect=passing_validation)
-        self.app.put('/v1/plans/PLAN_ID/validations/1/run')
+        self.app.put('/v1/validations/1/run')
         wait_for_request_to_be_processed()
-        validation = json_response(self.app.get('/v1/plans/PLAN_ID/validations/1/'))
+        validation = json_response(self.app.get('/v1/validations/1/'))
 
         rv = self.app.get(validation['results'][0])
         json = json_response(rv)
@@ -289,7 +314,7 @@ class ValidationResultsTestCase(ValidationAPITestCase):
         self.assertDictContainsSubset(
             {
                 'status': 'success',
-                'validation': '/v1/plans/PLAN_ID/validations/1/',
+                'validation': '/v1/validations/1/',
                 'detailed_description': passing_validation(),
             }, json)
 
@@ -297,9 +322,9 @@ class ValidationResultsTestCase(ValidationAPITestCase):
 
     def test_failed_validation_result(self):
         validations.run = mock.Mock(side_effect=failing_validation)
-        self.app.put('/v1/plans/PLAN_ID/validations/1/run')
+        self.app.put('/v1/validations/1/run')
         wait_for_request_to_be_processed()
-        validation = json_response(self.app.get('/v1/plans/PLAN_ID/validations/1/'))
+        validation = json_response(self.app.get('/v1/validations/1/'))
 
         rv = self.app.get(validation['results'][0])
         json = json_response(rv)
@@ -307,7 +332,7 @@ class ValidationResultsTestCase(ValidationAPITestCase):
         self.assertDictContainsSubset(
             {
                 'status': 'failed',
-                'validation': '/v1/plans/PLAN_ID/validations/1/',
+                'validation': '/v1/validations/1/',
                 'detailed_description': failing_validation(),
             }, json)
 
@@ -315,9 +340,9 @@ class ValidationResultsTestCase(ValidationAPITestCase):
 
     def test_running_validation_result(self):
         validations.run = mock.Mock(side_effect=running_validation)
-        self.app.put('/v1/plans/PLAN_ID/validations/1/run')
+        self.app.put('/v1/validations/1/run')
         wait_for_request_to_be_processed()
-        validation = json_response(self.app.get('/v1/plans/PLAN_ID/validations/1/'))
+        validation = json_response(self.app.get('/v1/validations/1/'))
 
         rv = self.app.get(validation['results'][0])
         json = json_response(rv)
@@ -325,18 +350,18 @@ class ValidationResultsTestCase(ValidationAPITestCase):
         self.assertDictContainsSubset(
             {
                 'status': 'running',
-                'validation': '/v1/plans/PLAN_ID/validations/1/',
+                'validation': '/v1/validations/1/',
             }, json)
 
         self.assertEqual(json, validation['latest_result'])
 
     def test_canceled_validation_result(self):
         validations.run = mock.Mock(side_effect=running_validation)
-        self.app.put('/v1/plans/PLAN_ID/validations/1/run')
+        self.app.put('/v1/validations/1/run')
         wait_for_request_to_be_processed()
-        rv = self.app.put('/v1/plans/PLAN_ID/validations/1/stop')
+        rv = self.app.put('/v1/validations/1/stop')
         wait_for_request_to_be_processed()
-        validation = json_response(self.app.get('/v1/plans/PLAN_ID/validations/1/'))
+        validation = json_response(self.app.get('/v1/validations/1/'))
 
         rv = self.app.get(validation['results'][0])
         json = json_response(rv)
@@ -344,15 +369,30 @@ class ValidationResultsTestCase(ValidationAPITestCase):
         self.assertDictContainsSubset(
             {
                 'status': 'canceled',
-                'validation': '/v1/plans/PLAN_ID/validations/1/',
+                'validation': '/v1/validations/1/',
             }, json)
 
         self.assertEqual(json, validation['latest_result'])
 
     def test_unknown_validation_result(self):
-        rv = self.app.get('/v1/plans/PLAN_ID/validation_results/100/')
+        rv = self.app.get('/v1/validation_results/100/')
         self.assertEqual(rv.content_type, 'application/json')
         self.assertEqual(rv.status_code, 404)
+
+    def test_validation_results_multiple_plans(self):
+        validations.run = mock.Mock(side_effect=passing_validation)
+        self.app.put('/v1/validations/1/run?plan_id=plan1')
+        wait_for_request_to_be_processed()
+        self.app.put('/v1/validations/1/run?plan_id=plan2')
+        wait_for_request_to_be_processed()
+        validation = json_response(self.app.get('/v1/validations/1/'))
+
+        plan1_result = json_response(self.app.get(validation['results'][0]))
+        plan2_result = json_response(self.app.get(validation['results'][1]))
+        self.assertIn('arguments', plan1_result)
+        self.assertIn('arguments', plan2_result)
+        assert plan1_result['arguments']['plan_id'] == 'plan1'
+        assert plan2_result['arguments']['plan_id'] == 'plan2'
 
 if __name__ == '__main__':
     unittest.main()
