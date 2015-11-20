@@ -54,7 +54,7 @@ class ValidationsTestCase(ValidationAPITestCase):
         rv = self.app.get('/v1/')
         json = json_response(rv)
         self.assertIn('/v1/validations/', json)
-        self.assertIn('/v1/validation_types/', json)
+        self.assertIn('/v1/stages/', json)
         self.assertIn('/v1/validation_results/', json)
 
     def test_list_validations(self):
@@ -222,13 +222,13 @@ class ValidationsTestCase(ValidationAPITestCase):
 
 class ValidationTypesTestCase(ValidationAPITestCase):
 
-    def test_list_validation_types(self):
-        rv = self.app.get('/v1/validation_types/')
+    def test_list_stages(self):
+        rv = self.app.get('/v1/stages/')
         self.assertEqual(rv.content_type, 'application/json')
         self.assertEqual(len(json_response(rv)), 3)
 
-    def test_list_validation_types_content(self):
-        rv = self.app.get('/v1/validation_types/')
+    def test_list_stages_content(self):
+        rv = self.app.get('/v1/stages/')
         json = json_response(rv)[0]
         self.assertDictContainsSubset(
             {
@@ -244,8 +244,8 @@ class ValidationTypesTestCase(ValidationAPITestCase):
                 'name': 'Basic connectivity',
             }, json['validations'][0])
 
-    def test_list_validation_typess_missing_metadata(self):
-        rv = self.app.get('/v1/validation_types/')
+    def test_list_stages_missing_metadata(self):
+        rv = self.app.get('/v1/stages/')
         json = json_response(rv)[1]
         self.assertDictContainsSubset(
             {
@@ -255,30 +255,30 @@ class ValidationTypesTestCase(ValidationAPITestCase):
                 'stage': 'Default stage',
             }, json)
 
-    def test_get_validation_type(self):
-        rv = self.app.get('/v1/validation_types/1/')
+    def test_get_stage(self):
+        rv = self.app.get('/v1/stages/1/')
         self.assertEqual(rv.content_type, 'application/json')
         json_response(rv)
 
-    def test_get_unknown_validation_type(self):
-        rv = self.app.get('/v1/validation_types/100/')
+    def test_get_unknown_stage(self):
+        rv = self.app.get('/v1/stages/100/')
         self.assertEqual(rv.content_type, 'application/json')
         json_response(rv, 404)
 
-    def test_get_new_validation_type_content(self):
-        rv = self.app.get('/v1/validation_types/1/')
+    def test_get_new_stage_content(self):
+        rv = self.app.get('/v1/stages/1/')
         self.assertDictContainsSubset(
             {
                 'uuid': '1',
                 'status': 'new',
             }, json_response(rv))
 
-    def test_get_success_validation_type_content(self):
+    def test_get_success_stage_content(self):
         validations.run = mock.Mock(side_effect=passing_validation)
-        self.app.put('/v1/validation_types/1/run')
+        self.app.put('/v1/stages/1/run')
         wait_for_request_to_be_processed()
 
-        rv = self.app.get('/v1/validation_types/1/')
+        rv = self.app.get('/v1/stages/1/')
         self.assertDictContainsSubset(
             {
                 'uuid': '1',

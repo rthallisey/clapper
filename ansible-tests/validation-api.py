@@ -84,9 +84,9 @@ def v1_index():
         url_for('show_validation', validation_id='ID'),
         url_for('run_validation', validation_id='ID'),
         url_for('stop_validation', validation_id='ID'),
-        url_for('list_validation_types'),
-        url_for('show_validation_type', type_id='ID'),
-        url_for('run_validation_type', type_id='ID'),
+        url_for('list_stages'),
+        url_for('show_stage', stage_id='ID'),
+        url_for('run_stage', stage_id='ID'),
         url_for('list_validation_results'),
         url_for('show_validation_result', result_id='ID'),
     ])
@@ -160,8 +160,8 @@ def validation_status(validation):
         return 'new'
 
 
-def aggregate_status(validation_type):
-    all_statuses = [validation_status(k) for k in validation_type['validations'].values()]
+def aggregate_status(stage):
+    all_statuses = [validation_status(k) for k in stage['validations'].values()]
     if all(status == 'new' for status in all_statuses):
         return 'new'
     elif all(status == 'success' for status in all_statuses):
@@ -194,48 +194,48 @@ def formatted_validation(validation):
                     for r in sorted_results],
     }
 
-def formatted_validation_type(validation_type):
+def formatted_stage(stage):
     formatted_validations = [formatted_validation(validation)
-                             for validation in validation_type['validations'].values()]
+                             for validation in stage['validations'].values()]
     return {
-        'uuid': validation_type['uuid'],
-        'ref': url_for('show_validation_type', type_id=validation_type['uuid']),
-        'name': validation_type['name'],
-        'description': validation_type['description'],
-        'stage': validation_type['stage'],
-        'status': aggregate_status(validation_type),
+        'uuid': stage['uuid'],
+        'ref': url_for('show_stage', stage_id=stage['uuid']),
+        'name': stage['name'],
+        'description': stage['description'],
+        'stage': stage['stage'],
+        'status': aggregate_status(stage),
         'validations': formatted_validations,
     }
 
 
-@app.route('/v1/validation_types/')
-def list_validation_types():
+@app.route('/v1/stages/')
+def list_stages():
     global DB
-    validation_types = DB['types'].values()
+    stages = DB['types'].values()
     result = []
-    for validation_type in validation_types:
-        result.append(formatted_validation_type(validation_type))
+    for stage in stages:
+        result.append(formatted_stage(stage))
     return json_response(200, result)
 
 
-@app.route('/v1/validation_types/<type_id>/')
-def show_validation_type(type_id):
+@app.route('/v1/stages/<stage_id>/')
+def show_stage(stage_id):
     global DB
     try:
-        validation_type = DB['types'][type_id]
+        stage = DB['types'][stage_id]
     except KeyError:
         return json_response(404, {})
-    return json_response(200, formatted_validation_type(validation_type))
+    return json_response(200, formatted_stage(stage))
 
 
-@app.route('/v1/validation_types/<type_id>/run', methods=['PUT'])
-def run_validation_type(type_id):
+@app.route('/v1/stages/<stage_id>/run', methods=['PUT'])
+def run_stage(stage_id):
     global DB
     try:
-        validation_type = DB['types'][type_id]
+        stage = DB['types'][stage_id]
     except KeyError:
         return json_response(404, {})
-    for validation in validation_type['validations'].values():
+    for validation in stage['validations'].values():
         validation_url = url_for('show_validation', validation_id=validation['uuid'])
         validation_arguments = {
             'plan_id': request.args.get('plan_id'),
