@@ -64,6 +64,7 @@ The `vars` section serves for storing variables that are going to be available t
 
 `tasks` contain a list of Ansible tasks to run. Each task is a YAML dictionary that must at minimum contain a name and a module to use. Module can be any module that ships with Ansible or any of the custom ones in the `library` subdirectory.
 
+You can go to the [Ansible documentation on playbooks to learn more](http://docs.ansible.com/ansible/playbooks.html).
 
 
 Ansible Inventory
@@ -98,11 +99,13 @@ Lastly, we have an `[all:vars]` section where we can configure certain Ansible-s
 
 `ansible_ssh_user` will specify the user Ansible should SSH as. If that user does not have root privileges, you can instruct it to use `sudo` by setting `ansible_sudo` to `true`.
 
+You can learn more at the [Ansible documentation page for the Inventory](http://docs.ansible.com/ansible/intro_inventory.html)
+
 
 Custom Modules
 --------------
 
-In case you want to do something that is not covered by the list of available Ansible modules, you can write your own. Modules belong to the `ansible-tests/validations/library` directory.
+In case you want to do something that is not covered by the list of [available Ansible modules](http://docs.ansible.com/ansible/modules_by_category.html), you can write your own. Modules belong to the `ansible-tests/validations/library` directory.
 
 Here is a sample module that will always fail:
 
@@ -126,6 +129,8 @@ If you save it as `ansible-tests/validations/library/my_module.py`, you can use 
 The name of the module in the validation `my_module` must match the file name (without extension): `my_module.py`.
 
 The custom modules can accept parameters and do more complex reporting. Please refer to the guide on writing modules in the Ansible documentation.
+
+You can learn more at the [Ansible documentation page about writing custom modules](http://docs.ansible.com/ansible/developing_modules.html).
 
 
 Running a validation
