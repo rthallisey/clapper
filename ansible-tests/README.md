@@ -20,7 +20,7 @@ and set the SSH username correctly. Launching a few OpenStack VMs for this
 purpose is enough for testing.
 
     $ export ANSIBLE_HOST_KEY_CHECKING=False
-    $ ansible-playbook -i hosts playbooks/dummy_a.yaml
+    $ ansible-playbook -i hosts validations/dummy_a.yaml
 
 Verify that the test run and succeeds.
 
