@@ -20,7 +20,7 @@ and set the SSH username correctly. Launching a few OpenStack VMs for this
 purpose is enough for testing.
 
     $ export ANSIBLE_HOST_KEY_CHECKING=False
-    $ ansible-playbook -i hosts playbooks/dummy_a.yaml
+    $ ansible-playbook -i hosts validations/dummy_a.yaml
 
 Verify that the test run and succeeds.
 
@@ -38,7 +38,7 @@ The API is available at: http://localhost:5000/
 There is no database right now, so all the results are going to be lost when
 you restart the server.
 
-The validations are all in the `playbooks` directory.
+The validations are all in the `validations` directory.
 
 The `test.html` page should contain a small snippen of JavaScript that accesses
 the API using CORS.
