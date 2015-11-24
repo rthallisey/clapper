@@ -38,7 +38,7 @@ The API is available at: http://localhost:5000/
 There is no database right now, so all the results are going to be lost when
 you restart the server.
 
-The validations are all in the `playbooks` directory.
+The validations are all in the `validations` directory.
 
 The `test.html` page should contain a small snippen of JavaScript that accesses
 the API using CORS.
