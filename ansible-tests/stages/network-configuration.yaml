@@ -6,5 +6,5 @@
       description: >
         Validations verify that the network was configured properly
         on all nodes
-      stage: discovery
-- include: ../validations/dummy_c.yaml
+      stage: network-validation
+- include: ../validations/compute_node_connectivity.yaml
