@@ -1,2 +1,0 @@
-Usage:
-python reference_validator.py <path to yaml files> [--recursive] [--unused-resources]
