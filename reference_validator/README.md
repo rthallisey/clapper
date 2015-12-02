@@ -13,12 +13,13 @@ This script validates references and detects unused variables in YAML files. It 
 
 <b> Parameters </b>
 <ul>
-<li> path/to/file            Absolute/relative path to file/directory containing YAML files. </li>
-<li> -r/--recursive          Scans all subdirectories of a given path for YAML files. </li>
-<li> -u/--unused-resources   Prints resources that not referred to in YAML file.</li>
+<li> `path/to/file` is absolute/relative path to file/directory containing YAML files. </li>
+<li> `-r/--recursive` causes scanning subdirectories of a given path for YAML files. </li>
+<li> `-u/--unused-resources` causes printing resources that are not referred to in YAML file.</li>
 </ul>
 
 <b> Output </b>
+
 Script returns all invalid references including name about instance where the reference is used and a list of all unused parameters (and optionally resources).
 
 TODO: formatted output

@@ -8,7 +8,6 @@ import os
 import argparse
 import re
 import yaml # pip install pyyaml
-import mmap
 import pprint
 
 RESOURCE = 1
@@ -19,9 +18,9 @@ class YAML_HotValidator:
     ''' Detects unused variables, invalid references.'''
 
     def __init__(self, arguments):
-        ''' Finds *.yaml files based on entered arguments. '''
-
-        dirs = []
+        ''' Finds *.yaml files based on entered arguments.
+            arguments - dictionary with parsed arguments and their values
+        '''
 
         # List of YAML files to be checked
         self.yaml = []
@@ -35,10 +34,9 @@ class YAML_HotValidator:
 
         self.print_unused_resources = arguments['unused_resources']
         self.ok = True
-
         self.printer = pprint.PrettyPrinter(indent=2)
-        self.re_suffix = re.compile(".+\.yaml$")
-        self.re_prefix = re.compile("^OS::.+")
+
+        dirs = []
 
         # Get all directly entered YAML files + list directories
         for path in arguments['files']:
@@ -60,9 +58,12 @@ class YAML_HotValidator:
 
 
     def check_suffix(self, cur_dir, cur_file):
-        ''' If file has a matching suffix, adds him to dedicated list. '''
+        ''' If file has a matching suffix, adds him to dedicated list.
+            cur_dir  - path to current directory
+            cur_file - filename of currently inspected file
+        '''
 
-        if re.match(self.re_suffix, cur_file):
+        if cur_file.endswith('yaml'):
             self.yaml.append(os.path.join(cur_dir, cur_file))
 
 
@@ -119,8 +120,12 @@ class YAML_HotValidator:
             self.resources = {}
             self.params = {}
 
+
     def inspect_instances(self, properties, name):
-        ''' Check if all references to variables are valid. '''
+        ''' Check if all references to variables are valid.
+            properties - structures containing instance properties and their values
+            name       - name of referring isntance
+        '''
 
         if isinstance(properties, list):
             for element in properties:
@@ -141,7 +146,11 @@ class YAML_HotValidator:
 
 
     def check_validity(self, value, name, section):
-        ''' Check if all declared variables have been used. '''
+        ''' Check if all declared variables have been used.
+            value   - referred variable
+            name    - name of referring instance
+            section - kind of referenced variable
+        '''
 
         ok = True
 
@@ -174,16 +183,20 @@ class YAML_HotValidator:
 
 
     def detect_pseudoparam(self, value):
-        ''' If parameter starts with "OS::", skip get_param check. '''
+        ''' If parameter starts with "OS::", skip get_param check.
+            value - string to be checked
+        '''
  
-        if re.match(self.re_prefix, value) != None:
+        if value.startswith('OS::'):
             return True
         else:
             return False
 
 
     def check_param_hierarchy(self, hierarchy):
-        ''' When access path to variable entered, check validity of hierarchy. '''
+        ''' When access path to variable entered, check validity of hierarchy.
+            hierarchy - list of keys used for accessing value
+        '''
 
         root = self.yaml_dict['parameters']
 
