@@ -22,13 +22,23 @@ class YAML_HotValidator:
         ''' Finds *.yaml files based on entered arguments. '''
 
         dirs = []
+
+        # List of YAML files to be checked
         self.yaml = []
+
+        # YAML file in dict format
         self.yaml_dict = {}
-        self.printer = pprint.PrettyPrinter(indent=2)
+
+        # Stores resources and parameters along with the times they are used.
         self.resources = {}
         self.params = {}
+
         self.print_unused_resources = arguments['unused_resources']
         self.ok = True
+
+        self.printer = pprint.PrettyPrinter(indent=2)
+        self.re_suffix = re.compile(".+\.yaml$")
+        self.re_prefix = re.compile("^OS::.+")
 
         # Get all directly entered YAML files + list directories
         for path in arguments['files']:
@@ -47,14 +57,12 @@ class YAML_HotValidator:
             else:
                 for f in os.listdir(directory):
                     self.check_suffix(directory, f)
-        #print(self.yaml)
 
 
     def check_suffix(self, cur_dir, cur_file):
         ''' If file has a matching suffix, adds him to dedicated list. '''
 
-        regex = re.compile(".+\.yaml$")
-        if re.match(regex, cur_file):
+        if re.match(self.re_suffix, cur_file):
             self.yaml.append(os.path.join(cur_dir, cur_file))
 
 
@@ -64,32 +72,27 @@ class YAML_HotValidator:
         for yaml_file in self.yaml:
             try:
                 with open(yaml_file, 'r') as fd:
-                    yaml_str = mmap.mmap(fileno=fd.fileno(), length=os.path.getsize(yaml_file),
-                                         prot=mmap.PROT_READ)
-                    # get_param, get_resource
-                    self.yaml_dict = yaml.load(yaml_str)
-
-                    print("File " + yaml_file)
-
-                    # save all parameters and resources names
-                    for param in list(self.yaml_dict['parameters'].keys()):
-                        self.params[param] = False
-                    for resource in list(self.yaml_dict['resources'].keys()):
-                        self.resources[resource] = False 
-
-                    # iterate over sections
-                    for section, instances in self.yaml_dict.iteritems():
-
-                        # skip those without nested structures
-                        if type(instances) == dict:
-
-                            # iterate over instances (variables)
-                            for variable, properties in instances.iteritems():
-                                #print(variable)
-                                self.inspect_instances(properties, variable)
-
+                    self.yaml_dict = yaml.load(fd.read())
             except IOError:
-                sys.stderr.write("File " + yaml_file + " could not be opened.", file=sys.stderr)
+                sys.stderr.write('File ' + yaml_file + ' could not be opened.', file=sys.stderr)
+
+            print("File " + yaml_file)
+
+            # save all parameters and resources names
+            for param in list(self.yaml_dict['parameters'].keys()):
+                self.params[param] = False
+            for resource in list(self.yaml_dict['resources'].keys()):
+                self.resources[resource] = False 
+
+            # iterate over sections
+            for section, instances in self.yaml_dict.iteritems():
+                # skip those without nested structures
+                if type(instances) == dict:
+
+                    # iterate over instances (variables)
+                    for variable, properties in instances.iteritems():
+                        #print(variable)
+                        self.inspect_instances(properties, variable)
 
             # Print unused variables
             if False in self.params.itervalues():
@@ -112,6 +115,9 @@ class YAML_HotValidator:
                 print('')
                 self.ok = True
 
+            # clear parameters and resources for next file
+            self.resources = {}
+            self.params = {}
 
     def inspect_instances(self, properties, name):
         ''' Check if all references to variables are valid. '''
@@ -151,12 +157,12 @@ class YAML_HotValidator:
             if type(value) == list:
                 ret = self.check_param_hierarchy(value)
                 if not ret[0]:
-                    print ("Parameter " + ret[1] + ' of instance ' + value[0] + ' referred in ' + name + ' is not declared.', file=sys.stderr)
+                    print ('Parameter ' + ret[1] + ' of instance ' + value[0] + ' referred in ' + name + ' is not declared.', file=sys.stderr)
                     self.ok = False
             else:
                 if not self.detect_pseudoparam(value):
                     if value not in list(self.params.keys()):
-                        print ("Parameter " + value + ' referred in ' + name + ' is not declared.', file=sys.stderr)
+                        print ('Parameter ' + value + ' referred in ' + name + ' is not declared.', file=sys.stderr)
                         self.ok = False
                     elif (self.params[value] == False):
                         self.params[value] = True
@@ -170,15 +176,14 @@ class YAML_HotValidator:
     def detect_pseudoparam(self, value):
         ''' If parameter starts with "OS::", skip get_param check. '''
  
-        regex = re.compile("^OS::.+")
-        if re.match(regex, value) != None:
+        if re.match(self.re_prefix, value) != None:
             return True
         else:
             return False
 
 
     def check_param_hierarchy(self, hierarchy):
-        ''' When access path to variable entered, checks validity of hierarchy. '''
+        ''' When access path to variable entered, check validity of hierarchy. '''
 
         root = self.yaml_dict['parameters']
 
