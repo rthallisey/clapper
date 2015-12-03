@@ -3,24 +3,14 @@
   vars:
     metadata:
       name: Check connectivity of the compute nodes.
-    controller_ctlplane_ip_address: 'www.ansible.com'
-    controller_external_ip_address: 'www.ansible.com'
-    controller_internal_api_ip_address: 'www.ansible.com'
-    controller_storage_ip_address: 'www.ansible.com'
-    controller_storage_mgmt_ip_address: 'www.ansible.com'
-    controller_tenant_ip_address: 'www.ansible.com'
+
   tasks:
-  - name: Check controller IP address on the ctlplane network
-    icmp_ping: host="{{ controller_ctlplane_ip_address }}"
-  - name: Check controller IP address on the external network
-    icmp_ping: host="{{ controller_external_ip_address }}"
-  - name: Check controller IP address on the internal API network
-    icmp_ping: host="{{ controller_internal_api_ip_address }}"
-  - name: Check controller IP address on the storage network
-    icmp_ping: host="{{ controller_storage_ip_address }}"
-  - name: Check controller IP address on the storage mgmt network
-    icmp_ping: host="{{ controller_storage_mgmt_ip_address }}"
-  - name: Check controller IP address on the tenant network
-    icmp_ping: host="{{ controller_tenant_ip_address }}"
-  - name: Check default gateway
-    icmp_ping: host="{{ ansible_default_ipv4['gateway'] }}"
+  - name: Run ping test
+    script: "files/ping_nodes.sh
+      {{ controller_ctlplane_ip_address | default }}
+      {{ controller_external_ip_address | default }}
+      {{ controller_internal_api_ip_address | default }}
+      {{ controller_storage_ip_address | default }}
+      {{ controller_storage_mgmt_ip_address | default }}
+      {{ controller_tenant_ip_address | default }}"
+    changed_when: false
