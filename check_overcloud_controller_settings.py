@@ -4,6 +4,7 @@ import os
 import ConfigParser
 
 MARIADB_MAX_CONNECTIONS_MIN = 4096
+MARIADB_OPEN_FILES_LIMIT_MIN = 16384
 
 def find_mariadb_config_file():
     potential_locations = [
@@ -34,6 +35,12 @@ def check_mariadb_config():
         print "WARNING max_connections is {}, it should be at least {}".format(
             config.getint('mysqld', 'max_connections'),
             MARIADB_MAX_CONNECTIONS_MIN)
+
+    if config.has_option('mysqld', 'open_files_limit') and \
+            config.getint('mysqld', 'open_files_limit') < MARIADB_OPEN_FILES_LIMIT_MIN:
+        print "WARNING open_files_limit is {}, it should be at least {}".format(
+            config.getint('mysqld', 'open_files_limit'),
+            MARIADB_OPEN_FILES_LIMIT_MIN)
 
 
 check_mariadb_config()
