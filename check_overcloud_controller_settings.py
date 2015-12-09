@@ -8,7 +8,11 @@ MARIADB_MAX_CONNECTIONS_MIN = 4096
 MARIADB_OPEN_FILES_LIMIT_MIN = 16384
 
 HAPROXY_GLOBAL_MAXCONN_MIN = 20480
-HAPROXY_DEFAULT_MAXCONN_MIN = 4096
+HAPROXY_DEFAULTS_MAXCONN_MIN = 4096
+HAPROXY_DEFAULTS_TIMEOUT_QUEUE = '1m'
+HAPROXY_DEFAULTS_TIMEOUT_CLIENT = '1m'
+HAPROXY_DEFAULTS_TIMEOUT_SERVER = '1m'
+HAPROXY_DEFAULTS_TIMEOUT_CHECK = '10s'
 
 warnings = {}
 
@@ -40,6 +44,65 @@ def find_haproxy_config_file():
         potential_locations
     )
 
+def check_mariadb_config():
+    config_file = find_mariadb_config_file()
+    config = parse_mariadb_conf(config_file)
+
+    assert_no_less_than(MARIADB_MAX_CONNECTIONS_MIN,
+                        config, 'mysqld', 'max_connections', config_file)
+
+    if 'mysqld' in config and 'open_files_limit' in config['mysqld']:
+        assert_no_less_than(MARIADB_OPEN_FILES_LIMIT_MIN,
+                            config, 'mysqld', 'open_files_limit', config_file)
+
+def check_haproxy_config():
+    config_file = find_haproxy_config_file()
+    config = parse_haproxy_conf(config_file)
+
+    assert_no_less_than(HAPROXY_GLOBAL_MAXCONN_MIN,
+                        config, 'global', 'maxconn', config_file)
+
+    assert_no_less_than(HAPROXY_DEFAULTS_MAXCONN_MIN,
+                        config, 'defaults', 'maxconn', config_file)
+
+    assert_equal(HAPROXY_DEFAULTS_TIMEOUT_QUEUE,
+                        config, 'defaults', 'timeout queue', config_file)
+
+    assert_equal(HAPROXY_DEFAULTS_TIMEOUT_CLIENT,
+                        config, 'defaults', 'timeout client', config_file)
+
+    assert_equal(HAPROXY_DEFAULTS_TIMEOUT_SERVER,
+                        config, 'defaults', 'timeout server', config_file)
+
+    assert_equal(HAPROXY_DEFAULTS_TIMEOUT_CHECK,
+                        config, 'defaults', 'timeout check', config_file)
+
+def assert_equal(expected, config, section, option, config_file):
+    if section not in config or option not in config[section]:
+        add_warning(config_file,
+                    "{} {} is unset, recommend is {}".format(
+                        section, option, expected))
+    elif config[section][option] != str(expected):
+        add_warning(config_file,
+                    "{} {} is {}, recommend is {}".format(
+                        section, option, config[section][option], expected))
+
+def assert_no_less_than(expected, config, section, option, config_file):
+    if section not in config or option not in config[section]:
+        add_warning(config_file,
+                    "{} {} is unset, recommend at least {}".format(
+                        section, option, expected))
+    elif int(config[section][option]) < expected:
+        add_warning(config_file,
+                    "{} {} is {}, recommend at least {}".format(
+                        section, option, config[section][option], expected))
+
+def add_warning(config_file, msg):
+    if config_file in warnings:
+        warnings[config_file].append(msg)
+    else:
+        warnings[config_file] = [msg]
+
 # ConfigParser chokes on both mariadb and haproxy files. Luckily They have
 # a syntax approaching ini config file so they are relatively easy to parse.
 # This generic ini style config parser is not perfect -- it can ignore some
@@ -65,63 +128,8 @@ def parse_mariadb_conf(file_path):
 
 def parse_haproxy_conf(file_path):
     section_regex = '^(\w+)'
-    option_regex = '^(?:\s+)(\w+)\s(.*)$'
+    option_regex = '^(?:\s+)(\w+(?:\s+\w+)*?)\s([\w/]*)$'
     return generic_ini_style_conf_parser(file_path, section_regex, option_regex)
-
-def check_mariadb_config():
-    config_file = find_mariadb_config_file()
-    config = parse_mariadb_conf(config_file)
-
-    if 'mysqld' not in config or \
-            'max_connections' not in config['mysqld']:
-        add_warning(config_file,
-                    "max_connections is unset, recommend at least {}".format(
-                        MARIADB_MAX_CONNECTIONS_MIN))
-    elif int(config['mysqld']['max_connections']) < MARIADB_MAX_CONNECTIONS_MIN:
-        add_warning(config_file,
-                    "max_connections is {}, recommend at least {}".format(
-                        int(config['mysqld']['max_connections']),
-                        MARIADB_MAX_CONNECTIONS_MIN))
-
-    if 'mysqld' in config and 'open_files_limit' in config['mysqld'] and \
-            int(config['mysqld']['open_files_limit']) < MARIADB_OPEN_FILES_LIMIT_MIN:
-        add_warning(config_file,
-                    "open_files_limit is {}, recommend at least {}".format(
-                        int(config['mysqld']['open_files_limit']),
-                        MARIADB_OPEN_FILES_LIMIT_MIN))
-
-
-def check_haproxy_config():
-    config_file = find_haproxy_config_file()
-    config = parse_haproxy_conf(config_file)
-
-    if 'global' not in config or \
-            'maxconn' not in config['global']:
-        add_warning(config_file,
-                    "global maxconn is unset, recommend at least {}".format(
-                        HAPROXY_GLOBAL_MAXCONN_MIN))
-    elif int(config['global']['maxconn']) < HAPROXY_GLOBAL_MAXCONN_MIN:
-        add_warning(config_file,
-                    "global maxconn is {}, recommend at least {}".format(
-                        int(config['global']['maxconn']),
-                        HAPROXY_GLOBAL_MAXCONN_MIN))
-
-    if 'defaults' not in config or \
-            'maxconn' not in config['defaults']:
-        add_warning(config_file,
-                    "defaults maxconn is unset, recommend at least {}".format(
-                        HAPROXY_DEFAULT_MAXCONN_MIN))
-    elif int(config['defaults']['maxconn']) < HAPROXY_DEFAULT_MAXCONN_MIN:
-        add_warning(config_file,
-                    "defaults maxconn is {}, recommend at least {}".format(
-                        int(config['defaults']['maxconn']),
-                        HAPROXY_DEFAULT_MAXCONN_MIN))
-
-def add_warning(config_file, msg):
-    if config_file in warnings:
-        warnings[config_file].append(msg)
-    else:
-        warnings[config_file] = [msg]
 
 def print_summary():
     for element in warnings:
