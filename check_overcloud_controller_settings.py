@@ -10,6 +10,8 @@ MARIADB_OPEN_FILES_LIMIT_MIN = 16384
 HAPROXY_GLOBAL_MAXCONN_MIN = 20480
 HAPROXY_DEFAULT_MAXCONN_MIN = 4096
 
+warnings = {}
+
 def find_mariadb_config_file():
     potential_locations = [
         '/etc/my.cnf.d/galera.cnf',
@@ -70,46 +72,68 @@ def check_mariadb_config():
     config_file = find_mariadb_config_file()
     config = parse_mariadb_conf(config_file)
 
-    print "Checking settings in {}".format(config_file)
-
     if 'mysqld' not in config or \
             'max_connections' not in config['mysqld']:
-        print "WARNING max_connections is unset, recommend at least {}" \
-            .format(MARIADB_MAX_CONNECTIONS_MIN)
+        add_warning(config_file,
+                    "max_connections is unset, recommend at least {}".format(
+                        MARIADB_MAX_CONNECTIONS_MIN))
     elif int(config['mysqld']['max_connections']) < MARIADB_MAX_CONNECTIONS_MIN:
-        print "WARNING max_connections is {}, recommend at least {}".format(
-            int(config['mysqld']['max_connections']),
-            MARIADB_MAX_CONNECTIONS_MIN)
+        add_warning(config_file,
+                    "max_connections is {}, recommend at least {}".format(
+                        int(config['mysqld']['max_connections']),
+                        MARIADB_MAX_CONNECTIONS_MIN))
 
     if 'mysqld' in config and 'open_files_limit' in config['mysqld'] and \
             int(config['mysqld']['open_files_limit']) < MARIADB_OPEN_FILES_LIMIT_MIN:
-        print "WARNING open_files_limit is {}, recommend at least {}".format(
-            int(config['mysqld']['open_files_limit']),
-            MARIADB_OPEN_FILES_LIMIT_MIN)
+        add_warning(config_file,
+                    "open_files_limit is {}, recommend at least {}".format(
+                        int(config['mysqld']['open_files_limit']),
+                        MARIADB_OPEN_FILES_LIMIT_MIN))
+
 
 def check_haproxy_config():
     config_file = find_haproxy_config_file()
     config = parse_haproxy_conf(config_file)
 
-    print "Checking settings in {}".format(config_file)
-
     if 'global' not in config or \
             'maxconn' not in config['global']:
-        print "WARNING global maxconn is unset, recommend at least {}" \
-            .format(HAPROXY_GLOBAL_MAXCONN_MIN)
+        add_warning(config_file,
+                    "global maxconn is unset, recommend at least {}".format(
+                        HAPROXY_GLOBAL_MAXCONN_MIN))
     elif int(config['global']['maxconn']) < HAPROXY_GLOBAL_MAXCONN_MIN:
-        print "WARNING global maxconn is {}, recommend at least {}".format(
-            int(config['global']['maxconn']),
-            HAPROXY_GLOBAL_MAXCONN_MIN)
+        add_warning(config_file,
+                    "global maxconn is {}, recommend at least {}".format(
+                        int(config['global']['maxconn']),
+                        HAPROXY_GLOBAL_MAXCONN_MIN))
 
     if 'defaults' not in config or \
             'maxconn' not in config['defaults']:
-        print "WARNING defaults maxconn is unset, recommend at least {}" \
-            .format(HAPROXY_DEFAULT_MAXCONN_MIN)
+        add_warning(config_file,
+                    "defaults maxconn is unset, recommend at least {}".format(
+                        HAPROXY_DEFAULT_MAXCONN_MIN))
     elif int(config['defaults']['maxconn']) < HAPROXY_DEFAULT_MAXCONN_MIN:
-        print "WARNING defaults maxconn is {}, recommend at least {}".format(
-            int(config['defaults']['maxconn']),
-            HAPROXY_DEFAULT_MAXCONN_MIN)
+        add_warning(config_file,
+                    "defaults maxconn is {}, recommend at least {}".format(
+                        int(config['defaults']['maxconn']),
+                        HAPROXY_DEFAULT_MAXCONN_MIN))
+
+def add_warning(config_file, msg):
+    if config_file in warnings:
+        warnings[config_file].append(msg)
+    else:
+        warnings[config_file] = [msg]
+
+def print_summary():
+    for element in warnings:
+        print "Found potential issues in {}:".format(element)
+        for warn in warnings[element]:
+            print "\t* {}".format(warn)
+
 
 check_mariadb_config()
 check_haproxy_config()
+
+print_summary()
+
+if len(warnings) > 0:
+    sys.exit(1)
