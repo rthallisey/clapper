@@ -1,0 +1,11 @@
+---
+- hosts: undercloud
+  vars:
+    metadata:
+      name: Provide difference in hardware configuration
+      description: This test provides difference in configuration based on data collected in ironic-inspector
+  env-vars:
+        - env-vars.json
+  tasks:
+  - name: Run the Discovery diff
+    discovery_diff: env-vars=""{{ env-vars }}""
