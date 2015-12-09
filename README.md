@@ -21,7 +21,7 @@ In order to use the IPMI acccess checking feature, you’ll need to run the foll
 command to install ipmitool on the undercloud node:
 
 ```
-sudo yum -y install ipmitooli
+sudo yum -y install ipmitool
 
 ./instackenv-validation.py
 ```
@@ -64,3 +64,15 @@ heat deployment-show <uuid>
 
 of a given deployment.
 
+
+Overcloud Controller Settings
+=============================
+
+After deploying the overcloud, it is possible to check the controller's
+settings against current best practices for several configuration file by
+executing the `check_overcloud_controller_settings.py` script on it. For
+example, if your overcloud controller node has IP address 192.0.2.10:
+
+```
+ssh heat-admin@192.0.2.10 'python' < ./check_overcloud_controller_settings.py
+```
