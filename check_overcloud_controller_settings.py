@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import os
-import ConfigParser
 import re
 import sys
 
@@ -39,25 +38,53 @@ def find_haproxy_config_file():
         potential_locations
     )
 
+# ConfigParser chokes on both mariadb and haproxy files. Luckily They have
+# a syntax approaching ini config file so they are relatively easy to parse.
+# This generic ini style config parser is not perfect -- it can ignore some
+# valid options --  but good enough for our use case.
+def generic_ini_style_conf_parser(file_path, section_regex, option_regex):
+    config = {}
+    current_section = None
+    with open(file_path) as config_file:
+        for line in config_file:
+            match_section = re.match(section_regex, line)
+            if match_section:
+                current_section = match_section.group(1)
+                config[current_section] = {}
+            match_option = re.match(option_regex, line)
+            if match_option and current_section:
+                config[current_section][match_option.group(1)] = match_option.group(2)
+    return config
+
+def parse_mariadb_conf(file_path):
+    section_regex = '^\[(\w+)\]'
+    option_regex = '^(?:\s*)(\w+)(?:\s*=\s*)?(.*)$'
+    return generic_ini_style_conf_parser(file_path, section_regex, option_regex)
+
+def parse_haproxy_conf(file_path):
+    section_regex = '^(\w+)'
+    option_regex = '^(?:\s+)(\w+)\s(.*)$'
+    return generic_ini_style_conf_parser(file_path, section_regex, option_regex)
+
 def check_mariadb_config():
     config_file = find_mariadb_config_file()
-    config = ConfigParser.SafeConfigParser()
-    config.read(config_file)
+    config = parse_mariadb_conf(config_file)
 
     print "Checking settings in {}".format(config_file)
 
-    if not config.has_option('mysqld', 'max_connections'):
+    if 'mysqld' not in config or \
+            'max_connections' not in config['mysqld']:
         print "WARNING max_connections is unset, recommend at least {}" \
             .format(MARIADB_MAX_CONNECTIONS_MIN)
-    elif config.getint('mysqld', 'max_connections') < MARIADB_MAX_CONNECTIONS_MIN:
+    elif int(config['mysqld']['max_connections']) < MARIADB_MAX_CONNECTIONS_MIN:
         print "WARNING max_connections is {}, recommend at least {}".format(
-            config.getint('mysqld', 'max_connections'),
+            int(config['mysqld']['max_connections']),
             MARIADB_MAX_CONNECTIONS_MIN)
 
-    if config.has_option('mysqld', 'open_files_limit') and \
-            config.getint('mysqld', 'open_files_limit') < MARIADB_OPEN_FILES_LIMIT_MIN:
+    if 'mysqld' in config and 'open_files_limit' in config['mysqld'] and \
+            int(config['mysqld']['open_files_limit']) < MARIADB_OPEN_FILES_LIMIT_MIN:
         print "WARNING open_files_limit is {}, recommend at least {}".format(
-            config.getint('mysqld', 'open_files_limit'),
+            int(config['mysqld']['open_files_limit']),
             MARIADB_OPEN_FILES_LIMIT_MIN)
 
 def check_haproxy_config():
@@ -83,21 +110,6 @@ def check_haproxy_config():
         print "WARNING defaults maxconn is {}, recommend at least {}".format(
             int(config['defaults']['maxconn']),
             HAPROXY_DEFAULT_MAXCONN_MIN)
-
-def parse_haproxy_conf(file_path):
-    config = {}
-    current_section = None
-    with open(file_path) as config_file:
-        for line in config_file:
-            match_section = re.match('^(\w+)', line)
-            if match_section:
-                current_section = match_section.group(1)
-                config[current_section] = {}
-            match_option = re.match('^(?:\s+)(\w+)\s(.*)$', line)
-            if match_option and current_section:
-                config[current_section][match_option.group(1)] = match_option.group(2)
-    return config
-
 
 check_mariadb_config()
 check_haproxy_config()
