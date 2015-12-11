@@ -5,5 +5,5 @@
       name: Hardware Discovery
       description: Validations that run after the hardware was discovered.
       stage: discovery
-- include: ../validations/dummy_a.yaml
+- include: ../validations/discovery_diff.yaml
 - include: ../validations/dummy_b.yaml
