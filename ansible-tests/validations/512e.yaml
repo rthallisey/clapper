@@ -1,0 +1,22 @@
+---
+- hosts: undercloud
+  vars:
+    metadata:
+      name: Advanced Format 512e Support
+      description: >
+        Ensure that the undercloud drives have the 512e support. Without it,
+        the overcloud images won't be installed.
+  tasks:
+  - name: List the available drives
+    register: drive_list
+    shell: "echo /sys/class/block/sd?"
+  - name: Check 512 for physical_block_size
+    command: cat "{{ item }}/queue/physical_block_size"
+    register: physical_block_size
+    failed_when: "'512' != '{{ physical_block_size.stdout }}'"
+    with_items: "{{ drive_list.stdout }}"
+  - name: Check 512 for logical_block_size
+    command: cat "{{ item }}/queue/logical_block_size"
+    register: logical_block_size
+    failed_when: "'512' != '{{ logical_block_size.stdout }}'"
+    with_items: "{{ drive_list.stdout }}"
