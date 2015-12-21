@@ -5,6 +5,6 @@
       name: Hardware Discovery
       description: Validations that run after the hardware was discovered.
       stage: discovery
-#- include: ../validations/discovery_diff.yaml
+- include: ../validations/discovery_diff.yaml
 - include: ../validations/undercloud-disk-space.yaml
 - include: ../validations/512e.yaml
