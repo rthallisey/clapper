@@ -6,11 +6,6 @@ DOCUMENTATION = '''
 module: discovery_diff
 short_description: Provide difference in hardware configuration
 author: "Swapnil Kulkarni, @coolsvap"
-options:
-  envfile:
-    description:
-    - JSON file containing environment variables required for execution
-    required: true
 '''
 
 from ansible.module_utils.basic import *
@@ -28,15 +23,14 @@ def get_node_hardware_data(hw_id, upenv):
         return json.loads(p.stdout.read())
 
 def main():
+
     module = AnsibleModule(
-        argument_spec={
-            'envfile': dict(required=True, type='str'),
-        }
+        argument_spec={}
     )
 
     upenv = os.environ.copy()
 
-    with open(str(envfile)) as data_file:    
+    with open("files/env_vars.json") as data_file:    
         env_data = json.load(data_file)
 
     upenv.update(env_data)

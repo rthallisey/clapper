@@ -1,0 +1,8 @@
+{
+"OS_TENANT_NAME" : "service",
+"OS_USERNAME" : "ironic",
+"OS_AUTH_URL" : "http://192.0.2.1:5000/v2.0/",
+"OS_PASSWORD" : "97cda60f67a7c434407c897aad0a1fc8b345175a",
+"OS_REGION_NAME" : "regionOne"
+}
+
