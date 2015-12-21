@@ -76,3 +76,21 @@ example, if your overcloud controller node has IP address 192.0.2.10:
 ```
 ssh heat-admin@192.0.2.10 'python' < ./check_overcloud_controller_settings.py
 ```
+
+Discovery Diff Validation
+=========================
+
+Provides difference in configuration based on data collected in ironic-inspectorprovides difference in configuration based on data collected in ironic-inspector
+
+Steps
+----
+- Update the hosts as per guidelines
+- Rename validations/files/env_vars.json.sample to validations/files/env_vars.json
+- Update the configuration to reflect the environment specific values
+- Run the validation
+
+```
+mv validations/files/env_vars.json.sample validations/files/env_vars.json
+vi validations/files/env_vars.json  #update the configuration
+ansible-playbook -v -i hosts validations/discovery_diff.yaml
+```
