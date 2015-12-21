@@ -35,7 +35,7 @@ All validations are located in the `validations` directory. It contains two subd
 
 The validations are grouped under deployment stages (e.g. pre-hardware introspection, pre-deployment, post-deployment). The files describing these stages and which validations belong there are located in the `stages` directory.
 
-Finally, the `hosts.sample` file represents a sample Ansible inventory file. It will contain the the nodes available to TripleO to deploy the OpenStack on. These should be grouped such that a validation can specify whether it should only be run on e.g. the storage nodes.
+Finally, the `hosts.sample` file represents a sample Ansible inventory file. It will contain the nodes available to TripleO to deploy the OpenStack on. These should be grouped such that a validation can specify whether it should only be run on e.g. the storage nodes.
 
 
 Sample Validation
