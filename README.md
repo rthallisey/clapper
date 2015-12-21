@@ -17,7 +17,7 @@ Lastly, it tests connections to bare metal nodes and confirm they are accessible
 The only argument for instackenv-vaidator.py is -f to input a json file.
 By default this will search for instackenv.json. 
 
-In order to use the IPMI acccess checking feature, you’ll need to run the following
+In order to use the IPMI accces checking feature, you’ll need to run the following
 command to install ipmitool on the undercloud node:
 
 ```
