@@ -1,4 +1,4 @@
 hosts
 *.pyc
 .venv
-env-vars.json
+env_vars.json
