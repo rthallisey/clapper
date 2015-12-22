@@ -2,3 +2,4 @@ hosts
 *.pyc
 .venv
 env_vars.json
+.tox
