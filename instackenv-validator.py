@@ -38,7 +38,7 @@ def main():
         env_data = json.load(net_file)
 
     maclist = []
-    baremetal_ips =[]
+    baremetal_ips = []
     for node in env_data['nodes']:
         LOG.info("Checking node %s" % node['pm_addr'])
 
@@ -68,8 +68,8 @@ def main():
         if node['pm_type'] == "pxe_ipmitool":
             LOG.debug("Identified baremetal node")
 
-            cmd = 'ipmitool -R 1 -I lanplus -H %s -U %s -P %s chassis status' % (node['pm_addr'],
-                  node['pm_user'], node['pm_password'])
+            cmd = 'ipmitool -R 1 -I lanplus -H %s -U %s -P %s chassis status' % (
+                node['pm_addr'], node['pm_user'], node['pm_password'])
             LOG.debug("Executing: %s", cmd)
             status = os.system(cmd)
             if status != 0:

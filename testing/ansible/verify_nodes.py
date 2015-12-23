@@ -3,18 +3,18 @@
 # python get-pip.py
 
 import argparse
+import json
+import os
 import pprint
+import re
 import subprocess
 import sys
-import os
-import json
-from ansible.runner import Runner
-import ansible.inventory
-import re
 
-#logging.basicConfig()
-#LOG = logging.getLogger(__name__)
-#LOG.setLevel(logging.DEBUG)  # JPEELER: change to INFO later
+from ansible.runner import Runner
+
+# logging.basicConfig()
+# LOG = logging.getLogger(__name__)
+# LOG.setLevel(logging.DEBUG)  # JPEELER: change to INFO later
 
 
 def argParser():
@@ -56,6 +56,7 @@ def get_discoverd_data():
         result[name] = json.loads(object)
     return result
 
+
 def heat_config_check():
     heat_config_runner = Runner(host_list='hosts',
                                 module_name='heat_config',
@@ -93,9 +94,7 @@ def network_verify():
 
 
 def main():
-    args = argParser()
-
-    #group = ansible.inventory.group.Group(name='nodes')
+    # group = ansible.inventory.group.Group(name='nodes')
 
     hostfile = open('hosts', 'w')
     output = os.popen('nova list').readlines()

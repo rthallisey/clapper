@@ -4,7 +4,7 @@ import datetime
 import threading
 import uuid
 
-from flask import Flask, abort, json, make_response, url_for, redirect, request
+from flask import Flask, json, make_response, url_for, redirect, request
 from flask.ext.cors import CORS
 
 import validations
@@ -176,6 +176,7 @@ def aggregate_status(stage):
         # Should never happen
         return 'unknown'
 
+
 def formatted_validation(validation):
     results = validation['results']
     sorted_results = sorted(results.values(), key=lambda r: r['date'])
@@ -193,6 +194,7 @@ def formatted_validation(validation):
         'results': [url_for('show_result', result_id=r['uuid'])
                     for r in sorted_results],
     }
+
 
 def formatted_stage(stage):
     formatted_validations = [formatted_validation(validation)
