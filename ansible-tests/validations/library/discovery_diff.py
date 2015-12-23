@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 
+import json
+import os
+import sys
+from ansible.module_utils.basic import *
+from subprocess import Popen, PIPE
+
 
 DOCUMENTATION = '''
 ---
@@ -7,12 +13,6 @@ module: discovery_diff
 short_description: Provide difference in hardware configuration
 author: "Swapnil Kulkarni, @coolsvap"
 '''
-
-from ansible.module_utils.basic import *
-import json
-from subprocess import Popen, PIPE
-import os
-import sys
 
 
 def get_node_hardware_data(hw_id, upenv):
@@ -22,6 +22,7 @@ def get_node_hardware_data(hw_id, upenv):
     if p.wait() == 0:
         return json.loads(p.stdout.read())
 
+
 def main():
 
     module = AnsibleModule(
@@ -30,7 +31,7 @@ def main():
 
     upenv = os.environ.copy()
 
-    with open("files/env_vars.json") as data_file:    
+    with open("files/env_vars.json") as data_file:
         env_data = json.load(data_file)
 
     upenv.update(env_data)
@@ -44,9 +45,9 @@ def main():
     hardware_ids = [i.strip() for i in p.stdout.read().splitlines() if i.strip()]
     hw_dicts = {}
     for hwid in hardware_ids:
-        hw_dicts[hwid]=get_node_hardware_data(hwid, upenv)
+        hw_dicts[hwid] = get_node_hardware_data(hwid, upenv)
 
-    #TODO(coolsvap) find a way to compare the obtained data in meaningful manner
+    # TODO(coolsvap) find a way to compare the obtained data in meaningful manner
     result = {
         'changed': True,
         'msg': 'Discovery data for %d servers' % len(hw_dicts.keys()),

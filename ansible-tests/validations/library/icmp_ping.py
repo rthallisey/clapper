@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from ansible.module_utils.basic import *
+
 DOCUMENTATION = '''
 ---
 module: icmp_ping
@@ -28,8 +30,8 @@ EXAMPLES = '''
 
 def main():
     module = AnsibleModule(
-        argument_spec = dict(
-            host = dict(required=True, type='str'),
+        argument_spec=dict(
+            host=dict(required=True, type='str'),
         )
     )
 
@@ -41,6 +43,5 @@ def main():
     module.exit_json(changed=False, failed=failed, msg=msg)
 
 
-from ansible.module_utils.basic import *
 if __name__ == '__main__':
     main()
