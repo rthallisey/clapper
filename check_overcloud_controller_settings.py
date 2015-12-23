@@ -16,6 +16,7 @@ HAPROXY_DEFAULTS_TIMEOUT_CHECK = '10s'
 
 warnings = {}
 
+
 def find_mariadb_config_file():
     potential_locations = [
         '/etc/my.cnf.d/galera.cnf',
@@ -31,6 +32,7 @@ def find_mariadb_config_file():
         potential_locations
     )
 
+
 def find_haproxy_config_file():
     potential_locations = [
         '/etc/haproxy/haproxy.cfg',
@@ -44,6 +46,7 @@ def find_haproxy_config_file():
         potential_locations
     )
 
+
 def check_mariadb_config():
     config_file = find_mariadb_config_file()
     config = parse_mariadb_conf(config_file)
@@ -54,6 +57,7 @@ def check_mariadb_config():
     if 'mysqld' in config and 'open_files_limit' in config['mysqld']:
         assert_no_less_than(MARIADB_OPEN_FILES_LIMIT_MIN,
                             config, 'mysqld', 'open_files_limit', config_file)
+
 
 def check_haproxy_config():
     config_file = find_haproxy_config_file()
@@ -66,16 +70,17 @@ def check_haproxy_config():
                         config, 'defaults', 'maxconn', config_file)
 
     assert_equal(HAPROXY_DEFAULTS_TIMEOUT_QUEUE,
-                        config, 'defaults', 'timeout queue', config_file)
+                 config, 'defaults', 'timeout queue', config_file)
 
     assert_equal(HAPROXY_DEFAULTS_TIMEOUT_CLIENT,
-                        config, 'defaults', 'timeout client', config_file)
+                 config, 'defaults', 'timeout client', config_file)
 
     assert_equal(HAPROXY_DEFAULTS_TIMEOUT_SERVER,
-                        config, 'defaults', 'timeout server', config_file)
+                 config, 'defaults', 'timeout server', config_file)
 
     assert_equal(HAPROXY_DEFAULTS_TIMEOUT_CHECK,
-                        config, 'defaults', 'timeout check', config_file)
+                 config, 'defaults', 'timeout check', config_file)
+
 
 def assert_equal(expected, config, section, option, config_file):
     if section not in config or option not in config[section]:
@@ -87,6 +92,7 @@ def assert_equal(expected, config, section, option, config_file):
                     "{} {} is {}, recommend is {}".format(
                         section, option, config[section][option], expected))
 
+
 def assert_no_less_than(expected, config, section, option, config_file):
     if section not in config or option not in config[section]:
         add_warning(config_file,
@@ -97,11 +103,13 @@ def assert_no_less_than(expected, config, section, option, config_file):
                     "{} {} is {}, recommend at least {}".format(
                         section, option, config[section][option], expected))
 
+
 def add_warning(config_file, msg):
     if config_file in warnings:
         warnings[config_file].append(msg)
     else:
         warnings[config_file] = [msg]
+
 
 # ConfigParser chokes on both mariadb and haproxy files. Luckily They have
 # a syntax approaching ini config file so they are relatively easy to parse.
@@ -121,15 +129,18 @@ def generic_ini_style_conf_parser(file_path, section_regex, option_regex):
                 config[current_section][match_option.group(1)] = match_option.group(2)
     return config
 
+
 def parse_mariadb_conf(file_path):
     section_regex = '^\[(\w+)\]'
     option_regex = '^(?:\s*)(\w+)(?:\s*=\s*)?(.*)$'
     return generic_ini_style_conf_parser(file_path, section_regex, option_regex)
 
+
 def parse_haproxy_conf(file_path):
     section_regex = '^(\w+)'
     option_regex = '^(?:\s+)(\w+(?:\s+\w+)*?)\s([\w/]*)$'
     return generic_ini_style_conf_parser(file_path, section_regex, option_regex)
+
 
 def print_summary():
     for element in warnings:
