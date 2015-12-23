@@ -25,9 +25,9 @@ def all_equal(coll):
 
 def main(argv):
     envfile = ''
-    outputfile= 'diff-output.json'
+    outputfile = 'diff-output.json'
     try:
-        opts, args = getopt.getopt(argv,"hi:",["ifile="])
+        opts, args = getopt.getopt(argv, "hi:", ["ifile="])
     except getopt.GetoptError:
         print 'test.py -i <envfile>'
         sys.exit(2)
@@ -40,7 +40,7 @@ def main(argv):
     print 'Input file is "', envfile
     print 'Output file is "', outputfile
 
-    with open(str(envfile)) as data_file:    
+    with open(str(envfile)) as data_file:
         env_data = json.load(data_file)
 
     upenv = os.environ.copy()
@@ -55,10 +55,10 @@ def main(argv):
     hardware_ids = [i.strip() for i in p.stdout.read().splitlines() if i.strip()]
     hw_dicts = {}
     for hwid in hardware_ids:
-        hw_dicts[hwid]=hardware_data(hwid, upenv)
+        hw_dicts[hwid] = hardware_data(hwid, upenv)
 
     with open('diff-output.json', 'w') as out:
         json.dump(hw_dicts, out)
 
 if __name__ == "__main__":
-   main(sys.argv[1:])
+    main(sys.argv[1:])
