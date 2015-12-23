@@ -5,6 +5,7 @@ import requests
 
 VALIDATION_SERVER = 'http://localhost:5001/v1/'
 
+
 def die(msg):
     print msg
     sys.exit(1)
@@ -16,6 +17,7 @@ def command_list(**args):
         die('something went wrong')
     for validation in resp.json():
         print "%s. %s" % (validation['uuid'], validation['name'])
+
 
 def command_results(**args):
     resp = requests.get(VALIDATION_SERVER + 'results/')
@@ -32,6 +34,7 @@ def command_results(**args):
                      detail['changed'],
                      detail['unreachable'],
                      detail['failures'])
+
 
 def command_run(*args):
     if len(args) != 1:
@@ -62,11 +65,14 @@ def command_get(*args):
 def unknown_command(*args):
     die("Unknown command. Available commands: {}".format(available_commands()))
 
+
 def is_command(function_name):
     return function_name.startswith('command_')
 
+
 def available_commands(*args):
     return [x[8:] for x in filter(is_command, globals().keys())]
+
 
 if __name__ == '__main__':
     if len(sys.argv) <= 1:
