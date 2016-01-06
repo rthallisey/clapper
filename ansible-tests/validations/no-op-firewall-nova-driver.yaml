@@ -1,0 +1,15 @@
+---
+- hosts: compute
+  vars:
+    metadata:
+      name: Verify NoOpFirewallDriver is set in Nova
+      description: >
+        When using Neutron, the `firewall_driver` option in Nova must be set to
+        `NoopFirewallDriver`.
+  tasks:
+  - name: Verify the `firewall_driver` value
+    # TODO(shadower): if/when we have more validations that read a value from an
+    # openstack config file, write a fact-gathering module for it.
+    command: 'grep "^\s*firewall_driver\s*=\s*nova\.virt\.firewall\.NoopFirewallDriver\b" /etc/nova/nova.conf'
+    register: nova_firewall_driver
+    failed_when: nova_firewall_driver.rc != 0
