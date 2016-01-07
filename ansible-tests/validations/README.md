@@ -28,4 +28,5 @@ The validations run on the undercloud.)
 
 (run after the OpenStack deployment finished)
 
+* [Verify the HAProxy configuration](haproxy.yaml)
 * [Verify the rabbitmq file descriptor limits are set correctly.](rabbitmq-limits.yaml)

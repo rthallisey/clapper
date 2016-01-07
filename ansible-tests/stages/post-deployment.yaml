@@ -5,4 +5,5 @@
       name: Post-deployment
       description: Validations that run after the deployment has finished
       stage: post-deployment
+- include: ../validations/haproxy.yaml
 - include: ../validations/rabbitmq-limits.yaml
