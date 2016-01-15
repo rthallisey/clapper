@@ -5,7 +5,7 @@ TripleO Validation API and scripts
 ## Setup
 
     $ cd ansible-tests/
-    $ virtualenv --distribute .venv
+    $ virtualenv .venv
     $ source .venv/bin/activate
     $ pip install -r requirements.txt
 
