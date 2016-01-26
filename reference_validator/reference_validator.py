@@ -14,6 +14,16 @@ RESOURCE = 1
 PARAMETER = 2
 ATTRIBUTE = 3
 
+class YAML_colours:
+    HEADER = '\033[95m'
+    BLUE = '\033[94m'
+    GREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
 class YAML_HotValidator:
     ''' Detects unused variables, invalid references.'''
 
@@ -33,6 +43,7 @@ class YAML_HotValidator:
         self.params = {}
 
         self.print_unused_resources = arguments['unused_resources']
+        self.pretty_format = arguments['pretty_format']
         self.ok = True
         self.printer = pprint.PrettyPrinter(indent=2)
 
@@ -66,6 +77,9 @@ class YAML_HotValidator:
         if cur_file.endswith('yaml'):
             self.yaml.append(os.path.join(cur_dir, cur_file))
 
+    # TODO: write invalid reference header only if there is a problem
+    def print_ref_header(self):
+        pass
 
     def validate_files(self):
         ''' Validates YAML files. '''
@@ -77,15 +91,24 @@ class YAML_HotValidator:
             except IOError:
                 sys.stderr.write('File ' + yaml_file + ' could not be opened.', file=sys.stderr)
 
-            print("File " + yaml_file)
+            if (self.pretty_format):
+                print(YAML_colours.BOLD + 'File ' + YAML_colours.BLUE + yaml_file + YAML_colours.ENDC)
+            else:
+                print('File ' + yaml_file)
+            print('')
 
-            # save all parameters and resources names
+            # Save all parameters and resources names
             for param in list(self.yaml_dict['parameters'].keys()):
                 self.params[param] = False
             for resource in list(self.yaml_dict['resources'].keys()):
                 self.resources[resource] = False 
 
-            # iterate over sections
+            # Iterate over sections
+            if (self.pretty_format):
+                print(YAML_colours.BOLD + 'Invalid references:' + YAML_colours.ENDC)
+            else:
+                print('Invalid references:')
+
             for section, instances in self.yaml_dict.iteritems():
                 # skip those without nested structures
                 if type(instances) == dict:
@@ -95,26 +118,53 @@ class YAML_HotValidator:
                         #print(variable)
                         self.inspect_instances(properties, variable)
 
+            print('')
+
             # Print unused variables
             if False in self.params.itervalues():
                 self.ok = False
-                print('Unused parameters:', file=sys.stderr)
+                if (self.pretty_format):
+                    print(YAML_colours.BOLD +  'Unused parameters:' + YAML_colours.ENDC, file=sys.stderr)
+                else:
+                    print('Unused parameters:', file=sys.stderr)
                 for key, value in self.params.iteritems():
                     if value == False:
-                        print('- ' + key, file=sys.stderr)
- 
+                        if(self.pretty_format):
+                            print('- ' + YAML_colours.WARNING + key + YAML_colours.ENDC, file=sys.stderr)
+                        else:
+                            print('- ' + key, file=sys.stderr)
+                print('')
+
+            # Print unused resources (optional)
             if (self.print_unused_resources) and (False in self.resources.itervalues()):
-                self.ok = False
-                print('Resources without reference:', file=sys.stderr)
+                if (self.pretty_format):
+                    print(YAML_colours.BOLD + 'Resources without reference:' +
+                          YAML_colours.ENDC, file=sys.stderr)
+                else:
+                    print('Resources without reference:', file=sys.stderr)
                 for key, value in self.resources.iteritems():
                     if value == False:
-                        print('- ' + key, file=sys.stderr)
-
-            if self.ok:
-                print('OK')
-            else:
+                        if (self.pretty_format): 
+                            print('- ' + YAML_colours.WARNING + key + YAML_colours.ENDC, file=sys.stderr)
+                        else:
+                            print('- ' + key, file=sys.stderr)
                 print('')
+
+            # Print file status as OK if there were no problems
+            if self.ok:
+                if (self.pretty_format):
+                    print(YAML_colours.BOLD + 'Status: ' + YAML_colours.GREEN + 'OK' + YAML_colours.ENDC)
+                else:
+                    print ('Status: OK')
+            else:
+                if (self.pretty_format):
+                    print(YAML_colours.BOLD + 'Status: ' + YAML_colours.FAIL + 'FAILED' +
+                          YAML_colours.ENDC)
+                else:
+                    print('Status: FAILED')
                 self.ok = True
+            
+            print('\n\n')
 
             # clear parameters and resources for next file
             self.resources = {}
@@ -157,7 +207,13 @@ class YAML_HotValidator:
         # Resource
         if section == RESOURCE:
             if value not in list(self.resources.keys()):
-                print ("Resource " + value + ' referred in ' + name + ' is not declared.', file=sys.stderr)
+                if (self.pretty_format):
+                    print ('Resource ' + YAML_colours.WARNING + value + YAML_colours.ENDC +
+                           ' referred in ' + YAML_colours.WARNING + name + 
+                           YAML_colours.ENDC + ' is not declared.', file=sys.stderr)
+                else:
+                    print ('Resource ' + value + ' referred in ' + name + ' is not declared.',
+                           file=sys.stderr)
                 self.ok = False
             elif self.resources[value] == False:
                 self.resources[value] = True
@@ -166,19 +222,39 @@ class YAML_HotValidator:
             if type(value) == list:
                 ret = self.check_param_hierarchy(value)
                 if not ret[0]:
-                    print ('Parameter ' + ret[1] + ' of instance ' + value[0] + ' referred in ' + name + ' is not declared.', file=sys.stderr)
+                    if (self.pretty_format):
+                        print ('Parameter ' + YAML_colours.WARNING + ret[1] + YAML_colours.ENDC +
+                        ' of instance ' + YAML_colours.WARNING + value[0] + YAML_colours.ENDC +
+                        ' referred in ' + YAML_colours.WARNING + name + YAML_colours.ENDC +
+                        ' is not declared.', file=sys.stderr)
+                    else:
+                        print ('Parameter ' + ret[1] + ' of instance ' + value[0] + ' referred in ' +
+                                name + ' is not declared.', file=sys.stderr)
                     self.ok = False
             else:
                 if not self.detect_pseudoparam(value):
                     if value not in list(self.params.keys()):
-                        print ('Parameter ' + value + ' referred in ' + name + ' is not declared.', file=sys.stderr)
+                        if (self.pretty_format):
+                            print ('Parameter ' + YAML_colours.WARNING + value + YAML_colours.ENDC +
+                                   ' referred in ' + YAML_colours.WARNING + name + YAML_colours.ENDC +
+                                   ' is not declared.',file=sys.stderr)
+                        else:
+                            print ('Parameter ' + value + ' referred in ' + name + ' is not declared.',
+                                   file=sys.stderr)
                         self.ok = False
                     elif (self.params[value] == False):
                         self.params[value] = True
         elif section == ATTRIBUTE:
             if type(value) == list:
                 if value[0] not in list(self.resources.keys()):
-                    print ('Instance ' + value[0] + ' referred by get_attr in ' + name + ' is not declared.', file=sys.stderr)
+                    if (self.pretty_format):
+                        print ('Instance ' + YAML_colours.WARNING + value[0] + YAML_colours.ENDC +
+                               ' referred by ' + YAML_colours.WARNING + 'get_attr' + YAML_colours.ENDC +
+                               ' in ' + YAML_colours.WARNING + name + YAML_colours.ENDC +
+                               ' is not declared.', file=sys.stderr)
+                    else:
+                        print ('Instance ' + value[0] + ' referred by ' + 'get_attr in ' +
+                               name + ' is not declared.', file=sys.stderr)
                     self.ok = False
 
 
@@ -217,6 +293,8 @@ def main():
                         help='When directory entered, search for files in its subdirectories recursively.')
     parser.add_argument('-u', '--unused-resources', action='store_true',
                         help='When true, print all resources that are not referred to.')
+    parser.add_argument('-p', '--pretty-format', action='store_true',
+                        help='When true, provides colourful output')
 
     # Initialize validator
     validator = YAML_HotValidator(vars(parser.parse_args()))
