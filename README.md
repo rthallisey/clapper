@@ -17,11 +17,11 @@ Lastly, it tests connections to bare metal nodes and confirm they are accessible
 The only argument for instackenv-vaidator.py is -f to input a json file.
 By default this will search for instackenv.json. 
 
-In order to use the IPMI acccess checking feature, you’ll need to run the following
+In order to use the IPMI access checking feature, you’ll need to run the following
 command to install ipmitool on the undercloud node:
 
 ```
-sudo yum -y install ipmitooli
+sudo yum -y install ipmitool
 
 ./instackenv-validation.py
 ```
@@ -64,3 +64,33 @@ heat deployment-show <uuid>
 
 of a given deployment.
 
+
+Overcloud Controller Settings
+=============================
+
+After deploying the overcloud, it is possible to check the controller's
+settings against current best practices for several configuration file by
+executing the `check_overcloud_controller_settings.py` script on it. For
+example, if your overcloud controller node has IP address 192.0.2.10:
+
+```
+ssh heat-admin@192.0.2.10 'python' < ./check_overcloud_controller_settings.py
+```
+
+Discovery Diff Validation
+=========================
+
+Provides difference in configuration based on data collected in ironic-inspectorprovides difference in configuration based on data collected in ironic-inspector
+
+Steps
+----
+- Update the hosts as per guidelines
+- Rename validations/files/env_vars.json.sample to validations/files/env_vars.json
+- Update the configuration to reflect the environment specific values
+- Run the validation
+
+```
+mv validations/files/env_vars.json.sample validations/files/env_vars.json
+vi validations/files/env_vars.json  #update the configuration
+ansible-playbook -v -i hosts validations/discovery_diff.yaml
+```

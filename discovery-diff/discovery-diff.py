@@ -1,14 +1,14 @@
+import getopt
 import json
 from subprocess import Popen, PIPE
 import os
 import sys
 
 
-def hardware_data(hw_id):
-    '''Read the discoverd data about the given node from Swift'''
-    # OS_TENANT_NAME=service swift download --output - ironic-discoverd <ID>
-    p = Popen(('swift', 'download', '--output', '-', 'ironic-discoverd', hw_id),
-              stdout=PIPE, stderr=PIPE)
+def hardware_data(hw_id, upenv):
+    '''Read the inspector data about the given node from Swift'''
+    p = Popen(('swift', 'download', '--output', '-', 'ironic-inspector', hw_id),
+              env=upenv, stdout=PIPE, stderr=PIPE)
     if p.wait() == 0:
         return json.loads(p.stdout.read())
 
@@ -23,41 +23,42 @@ def all_equal(coll):
     return True
 
 
-if __name__ == '__main__':
-    os.environ['OS_TENANT_NAME'] = 'service'
-    # OS_TENANT_NAME=service swift list ironic-discoverd
-    p = Popen(('swift', 'list', 'ironic-discoverd'), stdout=PIPE, stderr=PIPE)
+def main(argv):
+    envfile = ''
+    outputfile = 'diff-output.json'
+    try:
+        opts, args = getopt.getopt(argv, "hi:", ["ifile="])
+    except getopt.GetoptError:
+        print 'test.py -i <envfile>'
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            print 'test.py -i <envfile>'
+            sys.exit()
+        elif opt in ("-i", "--ifile"):
+            envfile = arg
+    print 'Input file is "', envfile
+    print 'Output file is "', outputfile
+
+    with open(str(envfile)) as data_file:
+        env_data = json.load(data_file)
+
+    upenv = os.environ.copy()
+    upenv.update(env_data)
+
+    p = Popen(('swift', 'list', 'ironic-inspector'), env=upenv, stdout=PIPE, stderr=PIPE)
     if p.wait() != 0:
-        print "Error running `swift list ironic-discoverd`"
+        print "Error running `swift list ironic-inspector`"
         print p.stderr.read()
         sys.exit(1)
 
     hardware_ids = [i.strip() for i in p.stdout.read().splitlines() if i.strip()]
-    hardware = [hardware_data(i) for i in hardware_ids]
+    hw_dicts = {}
+    for hwid in hardware_ids:
+        hw_dicts[hwid] = hardware_data(hwid, upenv)
 
-    hw_dicts = []
-    for hw in hardware:
-        hw_dict = {}
-        for item in hw:
-            key = '/'.join(item[:-1])
-            value = item[-1]
-            hw_dict[key] = value
-        hw_dicts.append(hw_dict)
+    with open('diff-output.json', 'w') as out:
+        json.dump(hw_dicts, out)
 
-    all_keys = set()
-    for hw in hw_dicts:
-        all_keys.update(hw.keys())
-
-    system_id_key = 'system/product/uuid'
-    print "System ID by %s:" % system_id_key
-    for num, hw in enumerate(hw_dicts):
-        print '[%d]: %s' % (num, hw[system_id_key])
-    print
-
-    for key in all_keys:
-        values = [hw.get(key) for hw in hw_dicts]
-        if key != system_id_key and not all_equal(values):
-            print '%s:' % key
-            for num, value in enumerate(values):
-                print '[%d] %s' % (num, value)
-            print
+if __name__ == "__main__":
+    main(sys.argv[1:])

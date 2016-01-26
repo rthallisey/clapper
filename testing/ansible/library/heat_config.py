@@ -3,6 +3,8 @@
 
 import json
 
+from ansible.module_utils.basic import *
+
 
 def get_occ_files():
     with open('/var/lib/os-collect-config/os_config_files.json', 'r') as f:
@@ -41,6 +43,5 @@ def main():
     module.exit_json(**result)
 
 
-from ansible.module_utils.basic import *
 if __name__ == '__main__':
     main()

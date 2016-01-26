@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from ansible.module_utils.basic import *
+
 DOCUMENTATION = '''
 ---
 module: icmp_ping
@@ -28,21 +30,18 @@ EXAMPLES = '''
 
 def main():
     module = AnsibleModule(
-        argument_spec = dict(
-            host = dict(required=True, type='str'),
+        argument_spec=dict(
+            host=dict(required=True, type='str'),
         )
     )
 
-    failed = False
-
     host = module.params.pop('host')
-    result = module.run_command('ping -c 1 {}'.format(host))[0]
-    if result != 0:
-        failed = True
+    result = module.run_command('ping -c 1 {}'.format(host))
+    failed = (result[0] != 0)
+    msg = result[1] if result[1] else result[2]
 
-    module.exit_json(failed=failed, changed=False)
+    module.exit_json(changed=False, failed=failed, msg=msg)
 
 
-from ansible.module_utils.basic import *
 if __name__ == '__main__':
     main()

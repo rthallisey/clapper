@@ -15,6 +15,7 @@ LOG.setLevel(logging.DEBUG)  # JPEELER: change to INFO later
 
 ERROR_COUNT = 0
 
+
 def argParser():
     parser = argparse.ArgumentParser(description='Clapper')
 
@@ -37,12 +38,12 @@ def main():
 
     with open(args['netenv'], 'r') as net_file:
         network_data = yaml.load(net_file)
-        #LOG.debug('\n' + yaml.dump(network_data))
+        # LOG.debug('\n' + yaml.dump(network_data))
 
     for item in network_data['resource_registry']:
         if item.endswith("Net::SoftwareConfig"):
             data = network_data['resource_registry'][item]
-            #LOG.debug(data)
+            # LOG.debug(data)
             LOG.info('Validating %s', data)
             NIC_validate(item, data)
 
@@ -67,9 +68,10 @@ def main():
 
     print '\n ----------SUMMARY----------'
     if ERROR_COUNT > 0:
-        print 'FAILED Validation with %i error(s)' %ERROR_COUNT
+        print 'FAILED Validation with %i error(s)' % ERROR_COUNT
     else:
-        print 'SUCCESSFUL Validation with %i error(s)' %ERROR_COUNT
+        print 'SUCCESSFUL Validation with %i error(s)' % ERROR_COUNT
+
 
 def check_cidr_overlap(networks):
     global ERROR_COUNT
@@ -85,6 +87,7 @@ def check_cidr_overlap(networks):
         if (net1 in net2 or net2 in net1):
             LOG.error('Overlapping networks detected {} {}'.format(net1, net2))
             ERROR_COUNT += 1
+
 
 def check_allocation_pools_pairing(filedata, pools):
     global ERROR_COUNT
@@ -108,7 +111,7 @@ def check_allocation_pools_pairing(filedata, pools):
 
         for ranges in pool_objs:
             for range in ranges:
-                if not range in subnet_obj:
+                if range not in subnet_obj:
                     LOG.error('Allocation pool {} {} outside of subnet'
                               '{}: {}'.format(poolitem, pooldata, subnet_item,
                                               subnet_obj))
@@ -145,15 +148,15 @@ def NIC_validate(resource, path):
     for item in nic_data['resources']:
         bridges = nic_data['resources'][item]['properties']['config']['os_net_config']['network_config']
         for bridge in bridges:
-            #LOG.debug('\n' + yaml.dump(bridge))
+            # LOG.debug('\n' + yaml.dump(bridge))
             if bridge['type'] == 'ovs_bridge':
                 bond_count = 0
                 interface_count = 0
                 for bond in bridge['members']:
                     if bond['type'] == 'ovs_bond':
-                        bond_count+=1
+                        bond_count += 1
                     if bond['type'] == 'interface':
-                        interface_count+=1
+                        interface_count += 1
                 if bond_count == 0:
                     # Logging could be better if we knew the bridge name
                     # Since it's passed as a paramter we would need to catch it
@@ -164,7 +167,9 @@ def NIC_validate(resource, path):
                     LOG.error('Invalid bonding: There are 2 bonds for bridge %s of resource %s in %s', bridge['name'], item, path)
                     ERROR_COUNT += 1
                 if bond_count == 0 and interface_count > 1:
-                    LOG.error('Invalid interface: When not using a bond, there can only be 1 interface for bridge %s of resource %s in %s', bridge['name'], item, path)
+                    LOG.error(
+                        'Invalid interface: When not using a bond, there can only be 1 interface for bridge %s of resource %s in %s', bridge['name'],
+                        item, path)
                     ERROR_COUNT += 1
 
 
