@@ -1,0 +1,16 @@
+#!/bin/bash
+
+# NOTE: place this at: /usr/local/bin/run-validation
+
+set -ex
+
+
+echo Sourcing stackrc
+source /tmp/stack/stackrc
+
+export ANSIBLE_HOST_KEY_CHECKING=False
+
+echo Running validation
+ansible-playbook -i /tmp/stack/clapper/ansible-tests/inv.py /tmp/stack/clapper/ansible-tests/validations/haproxy.yaml
+
+echo Validation finished
