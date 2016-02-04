@@ -148,10 +148,7 @@ def run(validation, cancel_event):
     runner_callbacks = callbacks.DefaultRunnerCallbacks()
     playbook = ansible.playbook.PlayBook(
         playbook=validation['playbook'],
-        # TODO we should use a dynamic inventory based on data coming from
-        # tripleo-common/heat/ironic
-        # http://docs.ansible.com/ansible/developing_api.html
-        host_list='hosts',
+        host_list='tripleo-ansible-inventory.py',
         stats=stats,
         callbacks=playbook_callbacks,
         runner_callbacks=runner_callbacks)
