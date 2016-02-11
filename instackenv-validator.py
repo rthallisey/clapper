@@ -33,6 +33,7 @@ def main():
     args = argParser()
 
     error_count = 0
+    errored_ipmi = []
 
     with open(args['file'], 'r') as net_file:
         env_data = json.load(net_file)
@@ -75,6 +76,7 @@ def main():
             if status != 0:
                 LOG.error('ERROR: ipmitool failed')
                 error_count += 1
+                errored_ipmi.append(node['pm_addr'])
             baremetal_ips.append(node['pm_addr'])
 
     if not allUnique(baremetal_ips):
@@ -94,6 +96,10 @@ def main():
         print('SUCCESS: instackenv validator found 0 errors')
     else:
         print('FAILURE: instackenv validator found %d errors' % error_count)
+        if len(errored_ipmi) > 0 :
+            print('Failure to contact below addresses')
+            for ipmi_addr in errored_ipmi :
+                print('IPMI Address : %s' % ipmi_addr)
 
 
 if __name__ == "__main__":
