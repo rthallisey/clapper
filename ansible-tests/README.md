@@ -13,27 +13,24 @@ TripleO Validation API and scripts
 ## Validation scripts setup
 
     $ source .venv/bin/activate
-    $ cp hosts.sample hosts
+    $ source ~/stackrc
+    $ ansible -i tripleo-ansible-inventory.py -m ping all
 
-Edit `hosts` and add some IP address for the "compute" and "controller" nodes,
-and set the SSH username correctly. Launching a few OpenStack VMs for this
-purpose is enough for testing.
+Verify that the test run and succeeds. You can also run a specific validation with:
 
-    $ export ANSIBLE_HOST_KEY_CHECKING=False
-    $ ansible-playbook -i hosts validations/dummy_a.yaml
-
-Verify that the test run and succeeds.
+    $ ansible-playbook -i tripleo-ansible-inventory.py validations/haproxy.yaml
 
 
 ## Run the API server
 
     $ source .venv/bin/activate
+    $ source ~/stackrc
     $ ./validation-api.py
 
 
 ## Notes
 
-The API is available at: http://localhost:5000/
+The API is available at: http://localhost:5001/
 
 There is no database right now, so all the results are going to be lost when
 you restart the server.

@@ -30,3 +30,4 @@ The validations run on the undercloud.)
 
 * [Verify the HAProxy configuration](haproxy.yaml)
 * [Verify the rabbitmq file descriptor limits are set correctly.](rabbitmq-limits.yaml)
+* [Verify Nova's firewall_driver is set to NoopFirewallDriver](no-op-firewall-nova-driver.yaml)
