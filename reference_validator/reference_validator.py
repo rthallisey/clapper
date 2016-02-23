@@ -214,17 +214,31 @@ class YAML_HotValidator:
             if resource.type.endswith('.yaml'):
                 self.create_node(resource.type, yaml_node, self.templates, False)
 
+                # Add child
+                yaml_node.children.append(self.templates[0])
+
                 # Start validating child
                 self.validate_file(self.templates[0])
 
                 # Whole subtree with root = current node is validated
 
-            # in any element of list environments TODO list comprehension?
+                # Check properties TODO: unused properties/parameters
+                print(YAML_colours.BOLD + 'Not received parameters at ' + resource.name +
+                      ' of ' + YAML_colours.BOLD + YAML_colours.BLUE +
+                      os.path.basename(yaml_node.path) + ':' + YAML_colours.DEFAULT)
+                for par in yaml_node.children[-1].params.keys():
+                    if par not in resource.properties.keys():
+                        print('- ' + YAML_colours.YELLOW + par + YAML_colours.DEFAULT)
+                print('\n')
+
             else:
                 for env in self.environments:
                     if resource.type in list(env.resource_registry.keys()):
                     # only compare names, also params from env file
                         pass
+
+            
+
 
         # Iterate over sections (all children validated by now)
         if (self.pretty_format):
@@ -442,6 +456,8 @@ def main():
     # HOT: change to its directory, validate -f
     os.chdir(os.path.dirname(validator.templates[0].path))
     validator.validate_file(validator.templates[0])
+
+    #print(validator.templates[1].path, validator.templates[1].parent.path)
 
     sys.exit(0)
 
