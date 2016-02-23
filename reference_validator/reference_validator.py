@@ -244,7 +244,6 @@ class YAML_HotValidator:
 
         # Print unused variables
         if False in yaml_node.params.itervalues():
-            yaml_node.ok = False
             if (self.pretty_format):
                 print(YAML_colours.BOLD +  'Unused parameters:' + YAML_colours.DEFAULT,
                       file=sys.stderr)
@@ -440,7 +439,8 @@ def main():
     for hot in validator.mappings:
         validator.validate_file(hot)
 
-    # HOT - 1 root node
+    # HOT: change to its directory, validate -f
+    os.chdir(os.path.dirname(validator.templates[0].path))
     validator.validate_file(validator.templates[0])
 
     sys.exit(0)
