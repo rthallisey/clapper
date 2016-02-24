@@ -8,3 +8,4 @@
 - include: ../validations/haproxy.yaml
 - include: ../validations/rabbitmq-limits.yaml
 - include: ../validations/neutron-sanity-check.yaml
+- include: ../validations/mysql-open-files-limit.yaml
