@@ -100,19 +100,21 @@ class YAML_HotValidator:
                 print('File ' + self.path + ' could not be opened.', file=sys.stderr)
                 sys.exit(1)
 
-            # File title TODO remove
-            print(YAML_colours.BOLD + YAML_colours.UNDERLINE + 'File ' + YAML_colours.BLUE +
-                  self.path + YAML_colours.DEFAULT)
-            print('')
-
             # Save all parameters names and resources + properties
-            for param in list(self.structure['parameters'].keys()):
-                self.params[param] = False
+            if 'parameters' in self.structure:
+                for param in list(self.structure['parameters'].keys()):
+                    self.params[param] = False
 
             # Save name and structure of each resource
-            for resource in self.structure['resources']:
-                self.resources.append(YAML_HotValidator.YAML_Resource(resource,
-                                           self.structure['resources'][resource]))
+            if 'resources' in self.structure:
+                for resource in self.structure['resources']:
+                    self.resources.append(YAML_HotValidator.YAML_Resource(resource,
+                                          self.structure['resources'][resource]))
+
+            # Save outputs
+            if 'outputs' in self.structure:
+                for out in self.structure['outputs']:
+                    self.outputs.append(out)
 
             # Examine children nodes to get the full information about references
             # if type == ...yaml > add node, start examining
@@ -129,12 +131,16 @@ class YAML_HotValidator:
 
                     # Whole subtree with root = current node is validated
 
-                    # Check properties TODO: unused properties/parameters
+                    # Check if parameters have corresponding properties or at least a default value
                     for par in self.children[-1].params.keys():
-                        if par not in resource.properties.keys():
+                        if ((par not in resource.properties.keys()) and
+                            (not 'default' in self.children[-1].structure['parameters'][par])):
+                            #print()
                             self.invalid.append(YAML_HotValidator.YAML_Reference(par, resource.name,
                                                 YAML_HotValidator.YAML_Types.PROPERTY))
-                    # Flag used properties
+                            self.ok = False
+
+                    # Tag used properties
                     for prop in resource.properties.keys():
                         if prop in self.children[-1].params.keys():
                             resource.properties[prop] = True
@@ -295,17 +301,16 @@ class YAML_HotValidator:
 
             keys = []
 
-            # Sort out group type and resource type
-            self.isGroup = (self.type == 'OS::Heat::AutoScalingGroup')
-
             # If there are properties, save them
             if 'properties' in resource_struct:
-                if self.isGroup:
-                    # type and properties of the individual resource
+                # type and properties of the individual resource
+                if self.type == 'OS::Heat::AutoScalingGroup':
                     self.type = resource_struct['properties']['resource']['type']
                     keys = list(resource_struct['properties']['resource']['properties'].keys())
+                elif self.type == 'OS::Heat::ResourceGroup':
+                    self.type = resource_struct['properties']['resource_def']['type']
+                    keys = list(resource_struct['properties']['resource_def']['properties'].keys())
                 else:
-                    #print (resource_struct['properties'].keys())
                     keys = list(resource_struct['properties'].keys())
 
                 for key in keys:
@@ -362,7 +367,7 @@ class YAML_HotValidator:
     def print_output(self):
         ''' Prints results of validation for all files. '''
 
-        print(YAML_colours.BOLD + YAML_colours.UNDERLINE + 'Results:' + YAML_colours.DEFAULT + '\n')
+        #print(YAML_colours.BOLD + YAML_colours.UNDERLINE + 'Results:' + YAML_colours.DEFAULT + '\n')
 
         for node in reversed(self.templates):
 
@@ -447,38 +452,41 @@ class YAML_HotValidator:
 
                 for resource in node.resources:
                     if resource.used == False:
-                        if (self.pretty_format): 
-                            print('- ' + YAML_colours.YELLOW + resource.name + YAML_colours.DEFAULT,
+                        if (self.pretty_format):
+                            print('- ' + YAML_colours.YELLOW + resource.name + YAML_colours.DEFAULT +
+                                  ' (' + resource.type + ')',
                                   file=sys.stderr)
                         else:
                             print('- ' + resource.name, file=sys.stderr)
                 print('')
 
-            # Print unused properties (optional)
-            if (self.print_unused):
-                flag = False
-                for res in node.resources:
-                    for prop, value in res.properties.iteritems():
-                        if value == False:
-                            flag = True
-                            break
-                    if flag:
+            # Print unused properties
+            flag = False
+            for res in [x for x in node.resources if x.type.endswith('.yaml')]:
+                for prop, value in res.properties.iteritems():
+                    if value == False:
+                        flag = True
                         break
                 if flag:
-                    if (self.pretty_format):
-                        print(YAML_colours.BOLD + 'Unused properties:' +
-                            YAML_colours.DEFAULT, file=sys.stderr)
-                    else:
-                        print('Properties without reference:', file=sys.stderr)
+                    break
+            if flag:
+                node.ok = False
+                if (self.pretty_format):
+                    print(YAML_colours.BOLD + 'Unused properties:' +
+                        YAML_colours.DEFAULT, file=sys.stderr)
+                else:
+                    print('Properties without corresponding parameter :', file=sys.stderr)
 
-                    for res in node.resources:
-                        for prop, value in res.properties.iteritems():
-                            if value == False:
-                                if (self.pretty_format):
-                                    print('- ' + YAML_colours.YELLOW + prop + YAML_colours.DEFAULT +
-                                          ' in ' + YAML_colours.YELLOW + res.name + YAML_colours.DEFAULT)
-                                else:
-                                    print('- ' + prop + ' in ' + res.name) 
+                for res in [x for x in node.resources if resource.type.endswith('.yaml')]:
+                    for prop, value in res.properties.iteritems():
+                        if value == False:
+                            if (self.pretty_format):
+                                print('- ' + YAML_colours.YELLOW + prop + YAML_colours.DEFAULT +
+                                      ' in ' + YAML_colours.YELLOW + res.name +
+                                      YAML_colours.DEFAULT)
+                            else:
+                                print('- ' + prop + ' in ' + res.name)
+                print('')
 
 
 
