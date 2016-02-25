@@ -425,7 +425,7 @@ class YAML_HotValidator:
                           YAML_colours.DEFAULT + ' has no corresponding property.')
                 print('')
 
-            # Unused variables
+            # Unused parameters
             if False in node.params.itervalues():
                 if (self.pretty_format):
                     print(YAML_colours.BOLD +  'Unused parameters:' + YAML_colours.DEFAULT,
@@ -440,24 +440,6 @@ class YAML_HotValidator:
                                   file=sys.stderr)
                         else:
                             print('- ' + key, file=sys.stderr)
-                print('')
-
-            # Print unused resources (optional)
-            if (self.print_unused) and [True for x in node.resources if not x.used]:
-                if (self.pretty_format):
-                    print(YAML_colours.BOLD + 'Resources without reference:' +
-                          YAML_colours.DEFAULT, file=sys.stderr)
-                else:
-                    print('Resources without reference:', file=sys.stderr)
-
-                for resource in node.resources:
-                    if resource.used == False:
-                        if (self.pretty_format):
-                            print('- ' + YAML_colours.YELLOW + resource.name + YAML_colours.DEFAULT +
-                                  ' (' + resource.type + ')',
-                                  file=sys.stderr)
-                        else:
-                            print('- ' + resource.name, file=sys.stderr)
                 print('')
 
             # Print unused properties
@@ -477,7 +459,7 @@ class YAML_HotValidator:
                 else:
                     print('Properties without corresponding parameter :', file=sys.stderr)
 
-                for res in [x for x in node.resources if resource.type.endswith('.yaml')]:
+                for res in [x for x in node.resources if x.type.endswith('.yaml')]:
                     for prop, value in res.properties.iteritems():
                         if value == False:
                             if (self.pretty_format):
@@ -488,7 +470,23 @@ class YAML_HotValidator:
                                 print('- ' + prop + ' in ' + res.name)
                 print('')
 
+            # Print unused resources (optional)
+            if (self.print_unused) and [True for x in node.resources if not x.used]:
+                if (self.pretty_format):
+                    print(YAML_colours.BOLD + 'Resources without reference:' +
+                          YAML_colours.DEFAULT, file=sys.stderr)
+                else:
+                    print('Resources without reference:', file=sys.stderr)
 
+                for resource in node.resources:
+                    if resource.used == False:
+                        if (self.pretty_format):
+                            print('- ' + YAML_colours.YELLOW + resource.name + YAML_colours.DEFAULT +
+                                  ' (' + resource.type + ')',
+                                  file=sys.stderr)
+                        else:
+                            print('- ' + resource.name, file=sys.stderr)
+                print('')
 
             # Print file status as OK if there were no problems
             if node.ok:
