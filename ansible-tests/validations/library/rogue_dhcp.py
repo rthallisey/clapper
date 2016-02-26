@@ -54,8 +54,8 @@ def main():
     dhcp_servers = find_dhcp_servers(module.params.get('timeout_seconds'))
     if dhcp_servers:
         formatted_servers = ("%s (%s)" % (ip, mac) for (ip, mac) in dhcp_servers)
-        results = "DHCP servers: %s\n\nNetworks: %s" % (
-            ','.join(formatted_servers), ','.join(networks))
+        # TODO: write out the networks when we actually use them for anything:
+        results = "DHCP servers: %s" % ','.join(formatted_servers)
     else:
         results = ""
 

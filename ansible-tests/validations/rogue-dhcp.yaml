@@ -1,5 +1,6 @@
 ---
 - hosts: undercloud
+  become: true
   vars:
     metadata:
       name: Rogue DHCP
