@@ -70,9 +70,15 @@ You can go to the [Ansible documentation on playbooks to learn more](http://docs
 Ansible Inventory
 -----------------
 
-For the time being, we need to specify an Ansible inventory file that will list and group all the nodes we want to run validations against. Eventually, the API will get this data from Ironic or Heat (likely through an API call to the `tripleo` library).
+### Dynamic inventory
 
-The inventory file should look something like this:
+We have a [dynamic inventory](http://docs.ansible.com/ansible/intro_dynamic_inventory.html), which contacts Heat to provide the addresses of the deployed nodes as well as the undercloud.
+
+Just pass `-i tripleo-ansible-inventory.py` to `ansible-playbook`.
+
+### Hosts file
+
+If you need more flexibility than what the current dynamic inventory provides, you can always write the hosts file. It should look something like this:
 
     [undercloud]
     undercloud.example.com
@@ -140,8 +146,5 @@ To run a validation, you need to some nodes to run it on, these need to be in th
 
 In general, Ansible and the validations will be located on the *undercloud*, because that should have connectivity to all the *overcloud* nodes.
 
-    $ git clone https://github.com/rthallisey/clapper.git
     $ cd clapper/ansible-tests
-    $ cp hosts.sample hosts
-    $ $EDITOR hosts  # Put your nodes' hostnames or IP addresses here
-    $ ansible-playbook -i hosts validations/some_validation.yaml
+    $ ansible-playbook -v -i hosts tripleo-ansible-inventory.py validations/some_validation.yaml
