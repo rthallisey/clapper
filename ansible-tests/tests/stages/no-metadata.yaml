@@ -1,3 +1,0 @@
----
-- hosts: overcloud
-- include: ../validations/dummy_c.yaml
