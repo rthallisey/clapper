@@ -1,5 +1,6 @@
 ---
 - hosts: undercloud
+  become: true
   vars:
     metadata:
       name: Rogue DHCP
@@ -11,6 +12,6 @@
     - 10.10.3.1/24
   tasks:
   - name: Install scappy
-    yum: name=scapy state=present
+    pip: name=scapy state=present
   - name: Look for a rogue DHCP
     rogue_dhcp: networks="{{ networks }}" timeout_seconds=60
