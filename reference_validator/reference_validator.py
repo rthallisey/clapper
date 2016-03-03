@@ -79,7 +79,7 @@ class YAML_HotValidator:
 
             self.resources = []         # YAML_Resource list
             self.params = {}            # name : used?
-            self.outputs = []           # name TODO
+            self.outputs = []           # name, mapped to attributes TODO
 
             self.structure = {}         # structure of YAML file
             self.ok = True
@@ -117,8 +117,6 @@ class YAML_HotValidator:
                     self.outputs.append(out)
 
             # Examine children nodes to get the full information about references
-            # if type == ...yaml > add node, start examining
-            # if type mapped to ...yaml, only check properties x parameters, do not add node
             for resource in self.resources:
                 if resource.type.endswith('.yaml'):
                     templates.insert(0, YAML_HotValidator.YAML_Hotfile(self, resource.type))
@@ -178,7 +176,6 @@ class YAML_HotValidator:
             elif isinstance(properties, dict):
                 # Check references, mark used variables
                 for key, value in properties.iteritems():
-                    #print(name, key)
                     if key == 'get_param':
                         self.check_validity(value, name, YAML_HotValidator.YAML_Types.PARAMETER)
                     elif key == 'get_resource':
@@ -204,7 +201,7 @@ class YAML_HotValidator:
                                         YAML_HotValidator.YAML_Types.RESOURCE))
                     self.ok = False
                 else:
-                    for resource in self.resources: # TODO check if self.curr_nodes[0] == yaml_node
+                    for resource in self.resources:
                         if value == resource.name:
                             resource.setUsage()
                             break
@@ -214,9 +211,9 @@ class YAML_HotValidator:
                 if type(value) == list:
                     ret = self.check_param_hierarchy(value)
                     if not ret[0]:
-
+                        # if self.structure['parameters'][value[0]]['type'] == 'json': # TODO
                         # Add it to invalid references
-                        self.invalid.append(YAML_HotValidator.YAML_Reference(ret[1], name,
+                            self.invalid.append(YAML_HotValidator.YAML_Reference(ret[1], name,
                                             YAML_HotValidator.YAML_Types.PARAMETER))
 
     #                    if (self.pretty_format):
@@ -227,7 +224,7 @@ class YAML_HotValidator:
     #                    else:
     #                        print ('Parameter ' + ret[1] + ' of instance ' + value[0] + ' referred in ' +
     #                                name + ' is not declared.', file=sys.stderr)
-                        self.ok = False
+                            self.ok = False
                 else:
                     if not self.detect_pseudoparam(value): # TODO add mapping
                         if value not in list(self.params.keys()):
@@ -239,21 +236,51 @@ class YAML_HotValidator:
 
                         elif (self.params[value] == False):
                            self.params[value] = True
+
             elif section == YAML_HotValidator.YAML_Types.ATTRIBUTE:
                 if type(value) == list:
-
                     if value[0] not in [x.name for x in self.resources]:
-                        # Add it to invalid references
+                        # TODO Add checking .yaml files, outputs
                         self.invalid.append(YAML_HotValidator.YAML_Reference(value[0], name,
                                             YAML_HotValidator.YAML_Types.ATTRIBUTE))
                         self.ok = False
+
+                    # if it is in a children node, check its first level of hierarchy
+                    elif [True for x in self.resources if (x.name == value[0])
+                                                          and x.type.endswith('.yaml')]:
+                        flag = False
+                        for r in self.resources:
+                            if r.name == value[0]:
+                                for f in self.children:
+                                    if r.type == f.path:
+
+                                        # outputs_list used in case of group
+                                        if (r.isGroup and (value[1] == 'outputs_list') and
+                                           (value[2] in f.outputs)):
+                                            flag = True
+
+                                        # mapped in outputs
+                                        elif value[1] in f.outputs:
+                                            flag = True
+
+                                        #resource.<name> used
+                                        elif value[1].startswith('resource.'):
+                                            string = value[1].split('.')
+                                            if string[1] in [x.name for x in f.resources]:
+                                                flag = True
+                                        break
+                                break
+                        if not flag:
+                            self.invalid.append(YAML_HotValidator.YAML_Reference(value[0], name,
+                                                YAML_HotValidator.YAML_Types.ATTRIBUTE))
+                            self.ok = False
 
 
         def detect_pseudoparam(self, value): # TODO adapt to mapping
             ''' If parameter starts with "OS::", skip get_param check.
                 value - string to be checked
             '''
-     
+
             if value.startswith('OS::'):
                 return True
             else:
@@ -264,12 +291,16 @@ class YAML_HotValidator:
             ''' When access path to variable entered, check validity of hierarchy.
                 hierarchy - list of keys used for accessing value
             '''
-            root = self.yaml_dict['parameters']
+            root = self.structure['parameters']
 
             # Validate path to value
-            for ele in hierarchy: 
+            for ele in hierarchy:
                 if ele in root:
                     root = root[ele]
+                # For params with json type, allow for "default KV section"
+                elif (('default' in root) and 
+                      (self.structure['parameters'][hierarchy[0]]['type'] == 'json')):
+                    root = root['default']
                 else:
                     return (False, ele)
             return (True, None)
@@ -286,11 +317,11 @@ class YAML_HotValidator:
 
             self.resource_registry = {} # original type: mapped type
             self.params = {}            # additional parameters
-            self.params_default = {}    # default values
+            self.params_default = {}    # default values, can replace property in property>param
 
             self.structure = {}
             self.ok = True
-    
+
     class YAML_Resource:
         ''' Stores useful info about resource, its structure '''
         def __init__(self, name, resource_struct):
@@ -298,18 +329,21 @@ class YAML_HotValidator:
             self.type = resource_struct['type']
             self.name = name
             self.properties = {}
+            self.isGroup = False
 
             keys = []
 
             # If there are properties, save them
             if 'properties' in resource_struct:
-                # type and properties of the individual resource
+                # Type and properties of the individual resource
                 if self.type == 'OS::Heat::AutoScalingGroup':
                     self.type = resource_struct['properties']['resource']['type']
                     keys = list(resource_struct['properties']['resource']['properties'].keys())
+                    self.isGroup = True
                 elif self.type == 'OS::Heat::ResourceGroup':
                     self.type = resource_struct['properties']['resource_def']['type']
                     keys = list(resource_struct['properties']['resource_def']['properties'].keys())
+                    self.isGroup = True
                 else:
                     keys = list(resource_struct['properties'].keys())
 
@@ -329,7 +363,7 @@ class YAML_HotValidator:
             self.element = element   # in which resource was reference realized
             self.type = ref_type     # type of referred attribute (YAML_Types)
 
-    def validate_environments(self):
+    def validate_environments(self, curr_nodes, mappings, environments):
 
         # Add all root environment nodes for validation
         self.curr_nodes.append(self.environments)
@@ -501,7 +535,7 @@ class YAML_HotValidator:
                           YAML_colours.DEFAULT)
                 else:
                     print('Status: FAILED')
-            
+
             print('\n\n')
 
 
@@ -522,12 +556,11 @@ def main():
 
     # Run validator
     # env to get mappings
-    validator.validate_environments()
+    validator.validate_environments(validator.curr_nodes, validator.mappings, validator.environments)
 
     # HOTs in mappings
     for hot in validator.mappings:
         hot.validate_file(validator.curr_nodes, validator.templates, validator.environments)
-        # TODO better solution
 
     # HOT: change to its directory, validate -f
     os.chdir(os.path.dirname(validator.templates[0].path))
