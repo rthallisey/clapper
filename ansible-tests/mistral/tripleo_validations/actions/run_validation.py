@@ -9,19 +9,23 @@ def call(program, *args):
 
     Return the exit value, stdout and stderr.
     '''
-    process = subprocess.Popen((program,) + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    process = subprocess.Popen((program,) + args,
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE)
     stdout, stderr = process.communicate()
     exit_value = process.wait()
     return (exit_value, stdout, stderr)
 
 
-class RunValidations(base.Action):
-    def __init__(self):
-        pass
+class RunValidation(base.Action):
+    def __init__(self, validation):
+        self.validation = validation
 
     def run(self):
-        # TODO(mandre) pass args to run-validation
-        exit_code, stdout, stderr = call('/usr/bin/sudo', '-u', 'stack', '/usr/bin/run-validation')
+        exit_code, stdout, stderr = call(
+            '/usr/bin/sudo', '-u', 'stack', '/usr/bin/run-validation',
+            self.validation
+        )
         return {
             'exit_code': exit_code,
             'stdout': stdout,

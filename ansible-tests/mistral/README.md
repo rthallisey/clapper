@@ -36,9 +36,9 @@ Install the `tripleo-validations` python module using the deploy.sh script:
 
 ## Running a validation
 
-Run the `tripleo.run_validations` action with mistral client:
+Run the `tripleo.run_validation` action with mistral client:
 
-    mistral run-action -s tripleo.run_validations
+    mistral run-action -s tripleo.run_validation 512e
 
 It will be run asynchronously and store the result in the mistral DB. Run
 `mistral action-execution-list` to see the status of all Mistral runs and
