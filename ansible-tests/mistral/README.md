@@ -3,61 +3,48 @@
 This is really rough. Basically, we add a Mistral action that runs a
 shell script which runs ansible with a single validation.
 
-## Prerequisities
+## Prerequisites
 
-Mistral on the undercloud.
+You will need an undercloud with the mistral services running.
 
-Doing this before installing the undercloud worked for me:
+Assuming you have a recent enough instack-undercloud (Mitaka), the easiest is
+to set `enable_mistral=true` in your 'undercloud.conf' file prior to running
+`openstack undercloud install`. That's it.
 
-    sudo yum -y install https://trunk.rdoproject.org/centos7/ef/60/ef602aaab58630c80dfe851eeadba5e46eea9193_9dfd2a02/openstack-mistral-all-2.0.0.0b3-dev1.el7.centos.noarch.rpm https://trunk.rdoproject.org/centos7/ef/60/ef602aaab58630c80dfe851eeadba5e46eea9193_9dfd2a02/openstack-mistral-api-2.0.0.0b3-dev1.el7.centos.noarch.rpm  https://trunk.rdoproject.org/centos7/ef/60/ef602aaab58630c80dfe851eeadba5e46eea9193_9dfd2a02/openstack-mistral-common-2.0.0.0b3-dev1.el7.centos.noarch.rpm https://trunk.rdoproject.org/centos7/ef/60/ef602aaab58630c80dfe851eeadba5e46eea9193_9dfd2a02/openstack-mistral-engine-2.0.0.0b3-dev1.el7.centos.noarch.rpm  https://trunk.rdoproject.org/centos7/ef/60/ef602aaab58630c80dfe851eeadba5e46eea9193_9dfd2a02/openstack-mistral-executor-2.0.0.0b3-dev1.el7.centos.noarch.rpm https://trunk.rdoproject.org/centos7/ef/60/ef602aaab58630c80dfe851eeadba5e46eea9193_9dfd2a02/python-openstack-mistral-2.0.0.0b3-dev1.el7.centos.noarch.rpm https://trunk.rdoproject.org/centos7/ef/60/ef602aaab58630c80dfe851eeadba5e46eea9193_9dfd2a02/python-mistralclient-1.2.1-dev17.el7.centos.noarch.rpm
+On the undercloud, verify you have mistral_engine, mistral_api and
+mistral_executor running with:
 
-    cp /usr/share/instack-undercloud/undercloud.conf.sample ~/undercloud.conf || true
-    sed -i -e 's/^.*enable_mistral = .*$/enable_mistral = true/' ~/undercloud.conf
+    $ pgrep -a mistral
 
+You also need to have ansible installed on the undercloud:
+
+    $ sudo pip install 'ansible<2'
+
+The validation playbooks have only been tested with ansible 1.9.4 at the
+moment.
+
+Finaly, make sure `sudo` can run without the need for a tty. In `/etc/sudoers`
+comment out the line "Defaults requiretty" if it's set.
 
 
 ## Mistral validation setup:
 
-    # mistral runs under the `mistral` user but its $HOME doesn't exist:
-    sudo mkdir -p /home/mistral/.ssh
-    sudo cp /home/stack/.ssh/id_rsa /home/mistral/.ssh/
-    sudo chown -R mistral:mistral /home/mistral
+Install the `tripleo-validations` python module using the deploy.sh script:
 
-    sudo cp clapper/ansible-tests/mistral/run-validation /usr/local/bin/run-validation
-
-    # register the validation in mistral:
-    cd clapper/ansible-tests/mistral
-    sudo ./deploy.sh
-
-    # copy clapper to /tmp so we avoid dealing with $HOME permissions:
-    mkdir /tmp/stack
-    cp -r clapper /tmp/stack
-    cp /home/stack/stackrc /tmp/stack
-
-And finally, replace `export OS_PASSWORD=$(sudo hiera admin_password)` in `/tmp/stack/stackrc`
-
-with the actual value you get by running `sudo hiera admin_password`.
-
-Did I mention this was janky?
-
+    $ cd clapper/ansible-tests/mistral
+    $ sudo ./deploy.sh
 
 ## Running a validation
 
-First, check that it's in Mistral's actions:
-
-    mistral action-list | grep tripleo
-
-Then run it:
+Run the `tripleo.run_validations` action with mistral client:
 
     mistral run-action -s tripleo.run_validations
 
-It will be run asynchronously and store the result. Run `mistral
-action-execution-list` to see the status of all Mistral runs and
-`mistral action-execution-get-output <uuid>` to get a particular run's
-output.
+It will be run asynchronously and store the result in the mistral DB. Run
+`mistral action-execution-list` to see the status of all Mistral runs and
+`mistral action-execution-get-output <uuid>` to get a particular run's output.
 
 The output is whatever dict we return from our Python code converted to json.
-
 
 ## TODO
 

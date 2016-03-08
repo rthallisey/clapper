@@ -20,8 +20,8 @@ class RunValidations(base.Action):
         pass
 
     def run(self):
-        # NOTE(shadower): UGH, I know
-        exit_code, stderr, stdout = call('/usr/local/bin/run-validation')
+        # TODO(mandre) pass args to run-validation
+        exit_code, stdout, stderr = call('/usr/bin/sudo', '-u', 'stack', '/usr/bin/run-validation')
         return {
             'exit_code': exit_code,
             'stdout': stdout,

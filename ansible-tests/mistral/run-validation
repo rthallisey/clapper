@@ -4,13 +4,16 @@
 
 set -ex
 
-
 echo Sourcing stackrc
-source /tmp/stack/stackrc
+source /home/stack/stackrc
 
+# Make sure ssh is not asking interactively for hosts it can't check the key
+# authenticity
 export ANSIBLE_HOST_KEY_CHECKING=False
 
 echo Running validation
-ansible-playbook -i /tmp/stack/clapper/ansible-tests/inv.py /tmp/stack/clapper/ansible-tests/validations/haproxy.yaml
+# TODO(mandre) run the validation passed as argument
+ansible-playbook -i /usr/share/tripleo-validations/tripleo-ansible-inventory.py \
+  /usr/share/tripleo-validations/validations/haproxy.yaml
 
 echo Validation finished
