@@ -66,6 +66,8 @@ class YAML_HotValidator:
         PARAMETER = 2 # get_param
         ATTRIBUTE = 3 # get_attr
         PROPERTY  = 4 # parameter in file B does not have corresponding property in file A
+        ENV_PARAMETER = 5 # parameters section in env file
+        ENV_DEFAULT = 6   # parameter_defaults in env file
 
     class YAML_Hotfile:
         ''' Class with attributes needed for work with HOT files '''
@@ -130,13 +132,23 @@ class YAML_HotValidator:
                     # Whole subtree with root = current node is validated
 
                     # Check if parameters have corresponding properties or at least a default value
+                    # or if they are mentioned in env file (param_default)
                     for par in self.children[-1].params.keys():
+                        flag = False
                         if ((par not in resource.properties.keys()) and
                             (not 'default' in self.children[-1].structure['parameters'][par])):
-                            #print()
+                            for env in environments:
+                                if par in list(env.params_default.keys()):
+                                    env.params_default[par] = True
+                                    flag = True
+                        else:
+                            flag = True
+
+                        if not flag:
                             self.invalid.append(YAML_HotValidator.YAML_Reference(par, resource.name,
                                                 YAML_HotValidator.YAML_Types.PROPERTY))
                             self.ok = False
+
 
                     # Tag used properties
                     for prop in resource.properties.keys():
@@ -211,7 +223,6 @@ class YAML_HotValidator:
                 if type(value) == list:
                     ret = self.check_param_hierarchy(value)
                     if not ret[0]:
-                        # if self.structure['parameters'][value[0]]['type'] == 'json': # TODO
                         # Add it to invalid references
                             self.invalid.append(YAML_HotValidator.YAML_Reference(ret[1], name,
                                             YAML_HotValidator.YAML_Types.PARAMETER))
@@ -316,10 +327,12 @@ class YAML_HotValidator:
             self.children = []
 
             self.resource_registry = {} # original type: mapped type
-            self.params = {}            # additional parameters
-            self.params_default = {}    # default values, can replace property in property>param
+            self.params = {}            # additional parameters, only for root file -f
+            self.params_default = {}    # default values, can replace property in property>param anywhere
 
             self.structure = {}
+            self.invalid = []           # invalid parameter references
+
             self.ok = True
 
     class YAML_Resource:
@@ -380,28 +393,135 @@ class YAML_HotValidator:
                 sys.exit(1)
 
             # Save mappings
-            for origin, custom in list(env_node.structure['resource_registry'].keys()):
-              env_node.resource_registry[origin] = custom
+            if 'resource_registry' in env_node.structure:
+                for origin, custom in list(env_node.structure['resource_registry'].keys()):
+                    env_node.resource_registry[origin] = custom
 
             # Save additional parameters + parameters with default values
-            for par in list(env_node.structure['parameters'].keys()):
-                env_node.params[par] = False
+            if 'parameters' in env_node.structure:
+                for par in list(env_node.structure['parameters'].keys()):
+                    env_node.params[par] = False
 
-            for par in list(env_node.structure['parameter_defaults']):
-                env_node.params_def[par] = False
+            if 'parameter_defaults' in env_node.structure:
+                for par in list(env_node.structure['parameter_defaults'].keys()):
+                    env_node.params_default[par] = False
 
-            for child in list(self.resource_registry.values()): # TODO check for .yaml here?
-                env_node.children.insert(0, YAML_Hotfile(env_node, os.path.abspath(child)))
+            for child in list(env_node.resource_registry.values()):
+                # TODO mappings to OS:: ??
+                if child.endswith('.yaml'):
+                    env_node.children.insert(0, self.YAML_Hotfile(env_node, os.path.abspath(child)))
+                    # Add for further examination
+                    self.mappings.append(env_node.children[0])
 
-                # Can there be nested env files or just normal HOT? -> validate env/files
 
-                self.mappings.append(env_node.children.last()) # add for further examination
+    def check_env_params(self, templates, environments):
+        ''' Checks parameters section of environment files '''
 
+        # Check parameters section
+        for env in environments:
+            for par in list(env.params.keys()):
+                if par not in list(templates[-1].params.keys()):
+                    env.ok = False
+                    env.invalid.append(self.YAML_Reference(par, None, self.YAML_Types.ENV_PARAMETER))
+                    # TODO isn't params[par] = False enough?
+                else:
+                    env.params[par] = True
+
+
+        # Check parameter_defaults section
+        for env in environments:
+            for par in list(env.params_default.keys()):
+                for hot in templates:
+                    if par in list(hot.params.keys()):
+                        env.params_default[par] = True
+                        break
 
     def print_output(self):
         ''' Prints results of validation for all files. '''
 
-        #print(YAML_colours.BOLD + YAML_colours.UNDERLINE + 'Results:' + YAML_colours.DEFAULT + '\n')
+        # Environments
+        if self.environments:
+            if (self.pretty_format):
+                print(YAML_colours.ORANGE + YAML_colours.BOLD + YAML_colours.UNDERLINE + 'Environments:' +
+                      YAML_colours.DEFAULT + '\n')
+            else:
+                print('Environments:\n')
+
+            for env in self.environments:
+                # Print title
+                if (self.pretty_format):
+                    print(YAML_colours.BOLD + YAML_colours.UNDERLINE + 'File ' + YAML_colours.BLUE +
+                          env.path + YAML_colours.DEFAULT)
+                else:
+                    print('File ' + env.path)
+                print('')
+
+                for ref in env.invalid:
+                    # Invalid parameters
+                    if ref.type == self.YAML_Types.ENV_PARAMETER:
+                         if (self.pretty_format):
+                             print ('Parameter ' + YAML_colours.YELLOW + ref.referent +
+                                    YAML_colours.DEFAULT + ' has no match in root template. ',
+                                    file=sys.stderr)
+                         else:
+                             print ('Parameter ' + ref.referent + ' has no match in root template ',
+                                    file=sys.stderr)
+                         print('')
+                print('')
+
+                if False in list(env.params_default.values()):
+                    env.ok = False
+                    for par in [x for x in list(env.params_default.keys()) if env.params_default[x] == False]:
+                        if (self.pretty_format):
+                            print ('Parameter default' + YAML_colours.YELLOW + par +
+                                    YAML_colours.DEFAULT + ' has no match in any template. ',
+                                    file=sys.stderr)
+                        else:
+                            print ('Parameter default' + par + ' has no match in any template ',
+                                    file=sys.stderr)
+                        print('')
+
+                # Print file status as OK if there were no problems
+                if env.ok:
+                    if (self.pretty_format):
+                        print(YAML_colours.BOLD + 'Status: ' + YAML_colours.GREEN + 'OK' +
+                              YAML_colours.DEFAULT)
+                    else:
+                        print ('Status: OK')
+                else:
+                    if (self.pretty_format):
+                        print(YAML_colours.BOLD + 'Status: ' + YAML_colours.RED + 'FAILED' +
+                              YAML_colours.DEFAULT)
+                    else:
+                        print('Status: FAILED')
+
+                print('\n\n')
+
+
+        # Mappings to environments
+        if self.mappings:
+            if (self.pretty_format):
+                print(YAML_colours.ORANGE + YAML_colours.BOLD + YAML_colours.UNDERLINE +
+                      'Mapped HOT files:' + YAML_colours.DEFAULT + '\n')
+            else:
+                print('Mapped HOT files:\n')
+
+            for mapped in self.mappings:
+                # Print title
+                if (self.pretty_format):
+                    print(YAML_colours.BOLD + YAML_colours.UNDERLINE + 'File ' + YAML_colours.BLUE +
+                          mapped.path + YAML_colours.DEFAULT)
+                else:
+                    print('File ' + mapped.path)
+                print('')
+
+
+        # HOT Files (should be always present)
+        if (self.pretty_format): 
+            print(YAML_colours.ORANGE + YAML_colours.BOLD + YAML_colours.UNDERLINE + 'HOT Files:' +
+                  YAML_colours.DEFAULT + '\n')
+        else:
+            print('HOT Files:\n')
 
         for node in reversed(self.templates):
 
@@ -566,6 +686,9 @@ def main():
     os.chdir(os.path.dirname(validator.templates[0].path))
     validator.templates[0].validate_file(validator.curr_nodes, validator.templates,
                                          validator.environments)
+
+    # Check environment parameters
+    validator.check_env_params(validator.templates, validator.environments)
 
     # Print results
     validator.print_output()
