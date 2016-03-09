@@ -48,6 +48,7 @@ The output is whatever dict we return from our Python code converted to json.
 
 ## TODO
 
-* update the mistral action to take a validation name as a parameter
-* use python code (instead of shelling out) to run the validations
+* actions to:
+  * get validation groups
+  * run a group of validations
 * ton of other stuff
