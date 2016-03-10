@@ -441,55 +441,67 @@ class YAML_HotValidator:
 
         # Environments
         if self.environments:
-            if (self.pretty_format):
+            if self.pretty_format:
                 print(YAML_colours.ORANGE + YAML_colours.BOLD + YAML_colours.UNDERLINE + 'Environments:' +
                       YAML_colours.DEFAULT + '\n')
             else:
                 print('Environments:\n')
 
             for env in self.environments:
+
                 # Print title
-                if (self.pretty_format):
+                if self.pretty_format:
                     print(YAML_colours.BOLD + YAML_colours.UNDERLINE + 'File ' + YAML_colours.BLUE +
                           env.path + YAML_colours.DEFAULT)
                 else:
                     print('File ' + env.path)
                 print('')
 
-                for ref in env.invalid:
-                    # Invalid parameters
-                    if ref.type == self.YAML_Types.ENV_PARAMETER:
-                         if (self.pretty_format):
-                             print ('Parameter ' + YAML_colours.YELLOW + ref.referent +
-                                    YAML_colours.DEFAULT + ' has no match in root template. ',
-                                    file=sys.stderr)
-                         else:
-                             print ('Parameter ' + ref.referent + ' has no match in root template ',
-                                    file=sys.stderr)
-                         print('')
-                print('')
+                # Parameters section
+                if env.invalid:
+                    if self.pretty_format:
+                         print (YAML_colours.BOLD + 'Parameters without match in root template:' +
+                                YAML_colours.DEFAULT,file=sys.stderr)
+                    else:
+                         print ('Parameters without match in root template:',file=sys.stderr)
+                    for ref in env.invalid:
+                        # Invalid parameters
+                        if ref.type == self.YAML_Types.ENV_PARAMETER:
+                             if self.pretty_format:
+                                 print ('- ' + YAML_colours.YELLOW + ref.referent +
+                                        YAML_colours.DEFAULT,file=sys.stderr)
+                             else:
+                                 print ('- ' + ref.referent + ' has no match in root template ',
+                                        file=sys.stderr)
+                    print('')
 
+                # Parameter_defaults section
                 if False in list(env.params_default.values()):
                     env.ok = False
-                    for par in [x for x in list(env.params_default.keys()) if env.params_default[x] == False]:
-                        if (self.pretty_format):
-                            print ('Parameter default' + YAML_colours.YELLOW + par +
-                                    YAML_colours.DEFAULT + ' has no match in any template. ',
-                                    file=sys.stderr)
+                    if self.pretty_format:
+                        print (YAML_colours.BOLD + 'Parameter defaults without match:' +
+                               YAML_colours.DEFAULT, file=sys.stderr)
+                    else:
+                        print ('Parameter defaults without match:',file=sys.stderr)
+
+                    for par in [x for x in list(env.params_default.keys())
+                                if env.params_default[x] == False]:
+                        if self.pretty_format:
+                            print ('- ' + YAML_colours.YELLOW + par +
+                                    YAML_colours.DEFAULT,file=sys.stderr)
                         else:
-                            print ('Parameter default' + par + ' has no match in any template ',
-                                    file=sys.stderr)
-                        print('')
+                            print ('- ' + par,file=sys.stderr)
+                    print('')
 
                 # Print file status as OK if there were no problems
                 if env.ok:
-                    if (self.pretty_format):
+                    if self.pretty_format:
                         print(YAML_colours.BOLD + 'Status: ' + YAML_colours.GREEN + 'OK' +
                               YAML_colours.DEFAULT)
                     else:
                         print ('Status: OK')
                 else:
-                    if (self.pretty_format):
+                    if self.pretty_format:
                         print(YAML_colours.BOLD + 'Status: ' + YAML_colours.RED + 'FAILED' +
                               YAML_colours.DEFAULT)
                     else:
@@ -500,7 +512,7 @@ class YAML_HotValidator:
 
         # Mappings to environments
         if self.mappings:
-            if (self.pretty_format):
+            if self.pretty_format:
                 print(YAML_colours.ORANGE + YAML_colours.BOLD + YAML_colours.UNDERLINE +
                       'Mapped HOT files:' + YAML_colours.DEFAULT + '\n')
             else:
@@ -508,7 +520,7 @@ class YAML_HotValidator:
 
             for mapped in self.mappings:
                 # Print title
-                if (self.pretty_format):
+                if self.pretty_format:
                     print(YAML_colours.BOLD + YAML_colours.UNDERLINE + 'File ' + YAML_colours.BLUE +
                           mapped.path + YAML_colours.DEFAULT)
                 else:
@@ -517,7 +529,7 @@ class YAML_HotValidator:
 
 
         # HOT Files (should be always present)
-        if (self.pretty_format): 
+        if self.pretty_format: 
             print(YAML_colours.ORANGE + YAML_colours.BOLD + YAML_colours.UNDERLINE + 'HOT Files:' +
                   YAML_colours.DEFAULT + '\n')
         else:
@@ -526,7 +538,7 @@ class YAML_HotValidator:
         for node in reversed(self.templates):
 
             # Print title
-            if (self.pretty_format):
+            if self.pretty_format:
                 print(YAML_colours.BOLD + YAML_colours.UNDERLINE + 'File ' + YAML_colours.BLUE +
                       node.path + YAML_colours.DEFAULT)
             else:
@@ -535,14 +547,14 @@ class YAML_HotValidator:
 
             # Invalid references
             if node.invalid:
-                if (self.pretty_format):
+                if self.pretty_format:
                    print(YAML_colours.BOLD + 'Invalid references:' + YAML_colours.DEFAULT)
                 else:
                    print('Invalid references:')
 
                 for ref in node.invalid:
                     if ref.type == self.YAML_Types.RESOURCE:
-                        if (self.pretty_format):
+                        if self.pretty_format:
                             print ('Resource ' + YAML_colours.YELLOW + ref.referent +
                                    YAML_colours.DEFAULT + ' referred in ' + YAML_colours.YELLOW +
                                    ref.element + YAML_colours.DEFAULT + ' is not declared.',
@@ -552,7 +564,7 @@ class YAML_HotValidator:
                                    ' is not declared.', file=sys.stderr)
 
                     elif ref.type == self.YAML_Types.PARAMETER:
-                        if (self.pretty_format):
+                        if self.pretty_format:
                             print ('Parameter ' + YAML_colours.YELLOW + ref.referent +
                                    YAML_colours.DEFAULT + ' referred in ' + YAML_colours.YELLOW +
                                    ref.element + YAML_colours.DEFAULT + ' is not declared.',
@@ -562,7 +574,7 @@ class YAML_HotValidator:
                                    ' is not declared.', file=sys.stderr)
 
                     elif ref.type == self.YAML_Types.ATTRIBUTE:
-                        if (self.pretty_format):
+                        if self.pretty_format:
                             print ('Instance ' + YAML_colours.YELLOW + ref.referent + 
                                    YAML_colours.DEFAULT + ' referred by ' + YAML_colours.YELLOW +
                                    'get_attr' + YAML_colours.DEFAULT + ' in ' + YAML_colours.YELLOW +
@@ -573,7 +585,7 @@ class YAML_HotValidator:
                                    ref.element + ' is not declared.', file=sys.stderr)
 
                     elif ref.type == self.YAML_Types.PROPERTY:
-                        if (self.pretty_format):
+                        if self.pretty_format:
                             print('Parameter ' + YAML_colours.YELLOW + ref.referent +
                                   YAML_colours.DEFAULT + ' in ' + YAML_colours.YELLOW + ref.element +
                           YAML_colours.DEFAULT + ' has no corresponding property.')
@@ -581,7 +593,7 @@ class YAML_HotValidator:
 
             # Unused parameters
             if False in node.params.itervalues():
-                if (self.pretty_format):
+                if self.pretty_format:
                     print(YAML_colours.BOLD +  'Unused parameters:' + YAML_colours.DEFAULT,
                           file=sys.stderr)
                 else:
@@ -589,7 +601,7 @@ class YAML_HotValidator:
 
                 for key, value in node.params.iteritems():
                     if value == False:
-                        if(self.pretty_format):
+                        if self.pretty_format:
                             print('- ' + YAML_colours.YELLOW + key + YAML_colours.DEFAULT,
                                   file=sys.stderr)
                         else:
@@ -607,7 +619,7 @@ class YAML_HotValidator:
                     break
             if flag:
                 node.ok = False
-                if (self.pretty_format):
+                if self.pretty_format:
                     print(YAML_colours.BOLD + 'Unused properties:' +
                         YAML_colours.DEFAULT, file=sys.stderr)
                 else:
@@ -616,7 +628,7 @@ class YAML_HotValidator:
                 for res in [x for x in node.resources if x.type.endswith('.yaml')]:
                     for prop, value in res.properties.iteritems():
                         if value == False:
-                            if (self.pretty_format):
+                            if self.pretty_format:
                                 print('- ' + YAML_colours.YELLOW + prop + YAML_colours.DEFAULT +
                                       ' in ' + YAML_colours.YELLOW + res.name +
                                       YAML_colours.DEFAULT)
@@ -634,7 +646,7 @@ class YAML_HotValidator:
 
                 for resource in node.resources:
                     if resource.used == False:
-                        if (self.pretty_format):
+                        if self.pretty_format:
                             print('- ' + YAML_colours.YELLOW + resource.name + YAML_colours.DEFAULT +
                                   ' (' + resource.type + ')',
                                   file=sys.stderr)
@@ -644,13 +656,13 @@ class YAML_HotValidator:
 
             # Print file status as OK if there were no problems
             if node.ok:
-                if (self.pretty_format):
+                if self.pretty_format:
                     print(YAML_colours.BOLD + 'Status: ' + YAML_colours.GREEN + 'OK' +
                           YAML_colours.DEFAULT)
                 else:
                     print ('Status: OK')
             else:
-                if (self.pretty_format):
+                if self.pretty_format:
                     print(YAML_colours.BOLD + 'Status: ' + YAML_colours.RED + 'FAILED' +
                           YAML_colours.DEFAULT)
                 else:
