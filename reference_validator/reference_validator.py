@@ -8,6 +8,7 @@ import os
 import pprint
 import re
 import sys
+import six # compatibility
 import yaml # pip install pyyaml
 
 class YAML_colours:
@@ -160,13 +161,12 @@ class YAML_HotValidator:
                             pass
 
             # Iterate over sections (all children validated by now)
-            for section, instances in self.structure.iteritems():
+            for section, instances in six.iteritems(self.structure):
                 # skip those without nested structures
                 if type(instances) == dict:
 
                     # iterate over instances (variables)
-                    for variable, properties in instances.iteritems():
-                        #print(variable)
+                    for variable, properties in six.iteritems(instances):
                         self.inspect_instances(properties, variable)
 
             # Remove node from current nodes after validation
@@ -185,7 +185,7 @@ class YAML_HotValidator:
                         self.inspect_instances(element, name)
             elif isinstance(properties, dict):
                 # Check references, mark used variables
-                for key, value in properties.iteritems():
+                for key, value in six.iteritems(properties):
                     if key == 'get_param':
                         self.check_validity(value, name, YAML_HotValidator.YAML_Types.PARAMETER)
                     elif key == 'get_resource':
@@ -249,7 +249,6 @@ class YAML_HotValidator:
             elif section == YAML_HotValidator.YAML_Types.ATTRIBUTE:
                 if type(value) == list:
                     if value[0] not in [x.name for x in self.resources]:
-                        # TODO Add checking .yaml files, outputs
                         self.invalid.append(YAML_HotValidator.YAML_Reference(value[0], name,
                                             YAML_HotValidator.YAML_Types.ATTRIBUTE))
                         self.ok = False
@@ -264,16 +263,17 @@ class YAML_HotValidator:
                                     if r.type == f.path:
 
                                         # outputs_list used in case of group
-                                        if (r.isGroup and (value[1] == 'outputs_list') and
-                                           (value[2] in f.outputs)):
+                                        if ((len(value) >= 3) and r.isGroup and
+                                            (value[1] == 'outputs_list') and
+                                            (value[2] in f.outputs)):
                                             flag = True
 
-                                        # mapped in outputs
-                                        elif value[1] in f.outputs:
+                                        # mapped to outputs
+                                        elif ((len(value) >= 2) and (value[1] in f.outputs)):
                                             flag = True
 
                                         #resource.<name> used
-                                        elif value[1].startswith('resource.'):
+                                        elif ((len(value) >= 2) and value[1].startswith('resource.')):
                                             string = value[1].split('.')
                                             if string[1] in [x.name for x in f.resources]:
                                                 flag = True
@@ -585,14 +585,14 @@ class YAML_HotValidator:
                 print('')
 
             # Unused parameters
-            if False in node.params.itervalues():
+            if False in node.params.values():
                 if self.pretty_format:
                     print(YAML_colours.BOLD +  'Unused parameters:' + YAML_colours.DEFAULT,
                           file=sys.stderr)
                 else:
                     print('Unused parameters:', file=sys.stderr)
 
-                for key, value in node.params.iteritems():
+                for key, value in six.iteritems(node.params):
                     if value == False:
                         if self.pretty_format:
                             print('- ' + YAML_colours.YELLOW + key + YAML_colours.DEFAULT,
@@ -604,7 +604,7 @@ class YAML_HotValidator:
             # Print unused properties
             flag = False
             for res in [x for x in node.resources if x.type.endswith('.yaml')]:
-                for prop, value in res.properties.iteritems():
+                for prop, value in six.iteritems(res.properties):
                     if value == False:
                         flag = True
                         break
@@ -668,10 +668,10 @@ def main():
     # Parse arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('-u', '--unused', action='store_true',
-                        help='When true, print all properties/resources that are not referred to.')
+                        help='When true, prints all unused resources/properties.')
     parser.add_argument('-p', '--pretty-format', action='store_true',
                         help='When true, provides colourful output')
-    parser.add_argument('-e', '--environment', metavar='path/to/environment', nargs='*',
+    parser.add_argument('-e', '--environment', metavar='path/to/environment', nargs='+',
                         help='Environment files to be used.')
     parser.add_argument('-f', '--file', metavar='path/to/file',
                         help='HOT file to be used.')
@@ -680,19 +680,20 @@ def main():
     validator = YAML_HotValidator(vars(parser.parse_args()))
 
     # Run validator
-    # env to get mappings
+
+    # Load environments to get mappings
     validator.load_environments()
 
-    # HOTs in mappings
+    # Validate HOTs in mappings
     for hot in validator.mappings:
         hot.validate_file(validator.curr_nodes, validator.templates, validator.environments)
 
-    # HOT: change to its directory, validate -f
+    # Validate HOTs: change to its directory, validate -f
     os.chdir(os.path.dirname(validator.templates[0].path))
     validator.templates[0].validate_file(validator.curr_nodes, validator.templates,
                                          validator.environments)
 
-    # Check environment parameters
+    # Check environment parameters against fully loaded HOT structure
     validator.validate_env_params()
 
     # Print results
