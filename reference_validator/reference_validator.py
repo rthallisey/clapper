@@ -66,8 +66,6 @@ class YAML_HotValidator:
         PARAMETER = 2 # get_param
         ATTRIBUTE = 3 # get_attr
         PROPERTY  = 4 # parameter in file B does not have corresponding property in file A
-        ENV_PARAMETER = 5 # parameters section in env file
-        ENV_DEFAULT = 6   # parameter_defaults in env file
 
     class YAML_Hotfile:
         ''' Class with attributes needed for work with HOT files '''
@@ -376,7 +374,7 @@ class YAML_HotValidator:
             self.element = element   # in which resource was reference realized
             self.type = ref_type     # type of referred attribute (YAML_Types)
 
-    def validate_environments(self, curr_nodes, mappings, environments):
+    def load_environments(self):
 
         # Add all root environment nodes for validation
         self.curr_nodes.append(self.environments)
@@ -414,24 +412,20 @@ class YAML_HotValidator:
                     self.mappings.append(env_node.children[0])
 
 
-    def check_env_params(self, templates, environments):
+    def validate_env_params(self):
         ''' Checks parameters section of environment files '''
 
         # Check parameters section
-        for env in environments:
+        for env in self.environments:
             for par in list(env.params.keys()):
-                if par not in list(templates[-1].params.keys()):
-                    env.ok = False
-                    env.invalid.append(self.YAML_Reference(par, None, self.YAML_Types.ENV_PARAMETER))
-                    # TODO isn't params[par] = False enough?
-                else:
+                if par in list(self.templates[-1].params.keys()):
                     env.params[par] = True
 
 
         # Check parameter_defaults section
-        for env in environments:
+        for env in self.environments:
             for par in list(env.params_default.keys()):
-                for hot in templates:
+                for hot in self.templates:
                     if par in list(hot.params.keys()):
                         env.params_default[par] = True
                         break
@@ -458,21 +452,20 @@ class YAML_HotValidator:
                 print('')
 
                 # Parameters section
-                if env.invalid:
+                if False in list(env.params.values()):
+                    env.ok = False
                     if self.pretty_format:
                          print (YAML_colours.BOLD + 'Parameters without match in root template:' +
                                 YAML_colours.DEFAULT,file=sys.stderr)
                     else:
                          print ('Parameters without match in root template:',file=sys.stderr)
-                    for ref in env.invalid:
-                        # Invalid parameters
-                        if ref.type == self.YAML_Types.ENV_PARAMETER:
-                             if self.pretty_format:
-                                 print ('- ' + YAML_colours.YELLOW + ref.referent +
-                                        YAML_colours.DEFAULT,file=sys.stderr)
-                             else:
-                                 print ('- ' + ref.referent + ' has no match in root template ',
-                                        file=sys.stderr)
+                    for par in [x for x in list(env.params.keys())
+                                if env.params[x] == False]:
+                        if self.pretty_format:
+                            print ('- ' + YAML_colours.YELLOW + par + YAML_colours.DEFAULT,
+                                   file=sys.stderr)
+                        else:
+                            print ('- ' + par, file=sys.stderr)
                     print('')
 
                 # Parameter_defaults section
@@ -688,7 +681,7 @@ def main():
 
     # Run validator
     # env to get mappings
-    validator.validate_environments(validator.curr_nodes, validator.mappings, validator.environments)
+    validator.load_environments()
 
     # HOTs in mappings
     for hot in validator.mappings:
@@ -700,7 +693,7 @@ def main():
                                          validator.environments)
 
     # Check environment parameters
-    validator.check_env_params(validator.templates, validator.environments)
+    validator.validate_env_params()
 
     # Print results
     validator.print_output()
