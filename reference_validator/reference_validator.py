@@ -51,6 +51,9 @@ class YAML_HotValidator:
         abs_path = os.path.abspath(arguments['file'])
         if abs_path.endswith('yaml'):
             self.templates.insert(0, self.YAML_Hotfile(None, abs_path))
+        else:
+            print('Wrong template file suffix.',file=sys.stderr)
+            sys.exit(1)
 
         # Check environment files (-e)
         if arguments['environment']:
@@ -135,6 +138,7 @@ class YAML_HotValidator:
                     self.validate_prop_par(self.children[-1], resource, environments)
 
                 # If its type is mapped to yaml file, check against mapping
+                # TODO: move elsewhere due to checking against not yet validated mapped file when going through mapped files
                 else:
                     for env in environments:
                         for origin, mapped in six.iteritems(env.resource_registry):
@@ -158,6 +162,8 @@ class YAML_HotValidator:
 
         def validate_prop_par(self, child, resource, environments):
             ''' Check properties against parameters and vice versa.'''
+
+            # TODO: check all templates and mapped files here, call function after validating them
 
             # Check if parameters have default or value from props
             for par in child.params.keys():
@@ -435,6 +441,10 @@ class YAML_HotValidator:
                     if par in list(hot.params.keys()):
                         env.params_default[par] = True
                         break
+                for hot in self.mappings:
+                    if par in list(hot.params.keys()):
+                        env.params_default[par] = True
+                        break
 
     def print_output(self):
         ''' Prints results of validation for all files. '''
@@ -575,8 +585,8 @@ class YAML_HotValidator:
                             YAML_colours.DEFAULT + ' has no corresponding property.')
                     print('')
 
-                # Unused parameters
-                if False in node.params.values():
+                # Unused parameters (optional)
+                if self.print_unused and (False in node.params.values()):
                     if self.pretty_format:
                         print(YAML_colours.BOLD +  'Unused parameters:' + YAML_colours.DEFAULT,
                               file=sys.stderr)
@@ -592,33 +602,34 @@ class YAML_HotValidator:
                                 print('- ' + key, file=sys.stderr)
                     print('')
 
-                # Print unused properties
-                flag = False
-                for res in [x for x in node.resources if x.type.endswith('.yaml')]:
-                    for prop, value in six.iteritems(res.properties):
-                        if value == False:
-                            flag = True
+                # Print unused properties (optional)
+                if self.print_unused:
+                    flag = False
+                    for res in [x for x in node.resources if x.type.endswith('.yaml')]:
+                        for prop, value in six.iteritems(res.properties):
+                            if value == False:
+                                flag = True
+                                break
+                        if flag:
                             break
                     if flag:
-                        break
-                if flag:
-                    node.ok = False
-                    if self.pretty_format:
-                        print(YAML_colours.BOLD + 'Unused properties:' +
-                            YAML_colours.DEFAULT, file=sys.stderr)
-                    else:
-                        print('Properties without corresponding parameter :', file=sys.stderr)
+                        node.ok = False
+                        if self.pretty_format:
+                            print(YAML_colours.BOLD + 'Unused properties:' +
+                                YAML_colours.DEFAULT, file=sys.stderr)
+                        else:
+                            print('Properties without corresponding parameter :', file=sys.stderr)
 
-                    for res in [x for x in node.resources if x.type.endswith('.yaml')]:
-                        for prop, value in res.properties.iteritems():
-                            if value == False:
-                                if self.pretty_format:
-                                    print('- ' + YAML_colours.YELLOW + prop + YAML_colours.DEFAULT +
-                                          ' in ' + YAML_colours.YELLOW + res.name +
-                                          YAML_colours.DEFAULT)
-                                else:
-                                    print('- ' + prop + ' in ' + res.name)
-                    print('')
+                        for res in [x for x in node.resources if x.type.endswith('.yaml')]:
+                            for prop, value in res.properties.iteritems():
+                                if value == False:
+                                    if self.pretty_format:
+                                        print('- ' + YAML_colours.YELLOW + prop + YAML_colours.DEFAULT +
+                                              ' in ' + YAML_colours.YELLOW + res.name +
+                                              YAML_colours.DEFAULT)
+                                    else:
+                                        print('- ' + prop + ' in ' + res.name)
+                        print('')
 
                 # Print unused resources (optional)
                 if (self.print_unused) and [True for x in node.resources if not x.used]:
@@ -659,7 +670,7 @@ def main():
     # Parse arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('-u', '--unused', action='store_true',
-                        help='When true, prints all unused resources/properties.')
+                        help='When true, prints all unused resources/properties/parameters.')
     parser.add_argument('-p', '--pretty-format', action='store_true',
                         help='When true, provides colourful output')
     parser.add_argument('-e', '--environment', metavar='path/to/environment', nargs='+',
@@ -691,7 +702,7 @@ def main():
                                          validator.environments)
 
     # Check environment parameters against fully loaded HOT structure
-    validator.validate_env_params()
+    validator.validate_env_params() # TODO check parameters for root template
 
     # Print results
     validator.print_output()
