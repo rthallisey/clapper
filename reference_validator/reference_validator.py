@@ -585,7 +585,7 @@ class YAML_HotValidator:
                             YAML_colours.DEFAULT + ' has no corresponding property.')
                     print('')
 
-                # Unused parameters (optional)
+                # Unused parameters (optional) ??
                 if self.print_unused and (False in node.params.values()):
                     if self.pretty_format:
                         print(YAML_colours.BOLD +  'Unused parameters:' + YAML_colours.DEFAULT,
@@ -602,34 +602,33 @@ class YAML_HotValidator:
                                 print('- ' + key, file=sys.stderr)
                     print('')
 
-                # Print unused properties (optional)
-                if self.print_unused:
-                    flag = False
-                    for res in [x for x in node.resources if x.type.endswith('.yaml')]:
-                        for prop, value in six.iteritems(res.properties):
-                            if value == False:
-                                flag = True
-                                break
-                        if flag:
+                # Print unused properties
+                flag = False
+                for res in [x for x in node.resources if x.type.endswith('.yaml')]:
+                    for prop, value in six.iteritems(res.properties):
+                        if value == False:
+                            flag = True
                             break
                     if flag:
-                        node.ok = False
-                        if self.pretty_format:
-                            print(YAML_colours.BOLD + 'Unused properties:' +
-                                YAML_colours.DEFAULT, file=sys.stderr)
-                        else:
-                            print('Properties without corresponding parameter :', file=sys.stderr)
+                        break
+                if flag:
+                    node.ok = False
+                    if self.pretty_format:
+                        print(YAML_colours.BOLD + 'Unused properties:' +
+                            YAML_colours.DEFAULT, file=sys.stderr)
+                    else:
+                        print('Properties without corresponding parameter :', file=sys.stderr)
 
-                        for res in [x for x in node.resources if x.type.endswith('.yaml')]:
-                            for prop, value in res.properties.iteritems():
-                                if value == False:
-                                    if self.pretty_format:
-                                        print('- ' + YAML_colours.YELLOW + prop + YAML_colours.DEFAULT +
-                                              ' in ' + YAML_colours.YELLOW + res.name +
-                                              YAML_colours.DEFAULT)
-                                    else:
-                                        print('- ' + prop + ' in ' + res.name)
-                        print('')
+                    for res in [x for x in node.resources if x.type.endswith('.yaml')]:
+                        for prop, value in res.properties.iteritems():
+                            if value == False:
+                                if self.pretty_format:
+                                    print('- ' + YAML_colours.YELLOW + prop + YAML_colours.DEFAULT +
+                                          ' in ' + YAML_colours.YELLOW + res.name +
+                                          YAML_colours.DEFAULT)
+                                else:
+                                    print('- ' + prop + ' in ' + res.name)
+                    print('')
 
                 # Print unused resources (optional)
                 if (self.print_unused) and [True for x in node.resources if not x.used]:
@@ -670,7 +669,7 @@ def main():
     # Parse arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('-u', '--unused', action='store_true',
-                        help='When true, prints all unused resources/properties/parameters.')
+                        help='When true, prints all unused resources/parameters.')
     parser.add_argument('-p', '--pretty-format', action='store_true',
                         help='When true, provides colourful output')
     parser.add_argument('-e', '--environment', metavar='path/to/environment', nargs='+',
