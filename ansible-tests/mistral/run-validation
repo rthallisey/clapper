@@ -1,0 +1,29 @@
+#!/bin/bash
+
+set -e
+
+VALIDATION=$1
+DYNAMIC_INVENTORY_SCRIPT=/usr/share/tripleo-validations/tripleo-ansible-inventory.py
+
+if [[ -z "$VALIDATION" ]]; then
+    echo "Missing required validation name"
+    exit 1
+fi
+
+VALIDATION_FILE=/usr/share/tripleo-validations/validations/${VALIDATION}.yaml
+if [[ ! -r "$VALIDATION_FILE" ]]; then
+    echo "Can not find validation at $VALIDATION_FILE"
+    exit 1
+fi
+
+echo Sourcing stackrc
+source /home/stack/stackrc
+
+# Make sure ssh is not asking interactively for hosts it can't check the key
+# authenticity
+export ANSIBLE_HOST_KEY_CHECKING=False
+
+echo Running validation
+ansible-playbook -i $DYNAMIC_INVENTORY_SCRIPT $VALIDATION_FILE
+
+echo Validation finished

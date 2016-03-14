@@ -24,10 +24,8 @@
 
 from __future__ import print_function
 
-import argparse
 import json
 import os
-import re
 import sys
 
 from oslo_config import cfg
@@ -45,7 +43,7 @@ opts = [
 try:
     from heatclient.v1 import client as heat_client
 except ImportError:
-    print('heatclient is required',file=sys.stderr)
+    print('heatclient is required', file=sys.stderr)
     sys.exit(1)
 try:
     from keystoneclient.v3 import client as keystone_client
@@ -67,7 +65,8 @@ def _parse_config():
         if "OS_AUTH_URL" in os.environ:
             configs.auth_url = os.environ.get('OS_AUTH_URL')
         else:
-            print('ERROR: auth-url not defined and OS_AUTH_URL environment variable missing, unable to proceed.', file=sys.stderr)
+            print('ERROR: auth-url not defined and OS_AUTH_URL environment '
+                  'variable missing, unable to proceed.', file=sys.stderr)
             sys.exit(1)
     if configs.username is None:
         if "OS_USERNAME" in os.environ:
@@ -89,31 +88,33 @@ class TripleoInventory(object):
         self._ksclient = None
         self._hclient = None
 
-
     def fetch_stack_resources(self, stack, resource_name):
         heatclient = self.hclient
         ret = []
         try:
-            resource_id = heatclient.resources.get(stack, resource_name).physical_resource_id
+            resource_id = heatclient.resources.get(stack, resource_name) \
+                .physical_resource_id
             for resource in heatclient.resources.list(resource_id):
-                node = heatclient.resources.get(resource_id, resource.resource_name)
+                node = heatclient.resources.get(resource_id,
+                                                resource.resource_name)
                 node_address = node.attributes['tenant_ip_address']
                 ret.append(node_address)
-        except:
+        except Exception:
             # Ignore non existent stacks or resources
             pass
         return ret
 
-
     def list(self):
-        ret = {'undercloud': {
-               'hosts': ['localhost'],
+        ret = {
+            'undercloud': {
+                'hosts': ['localhost'],
                 'vars': {
                     'ansible_connection': 'local'
                 },
             }
         }
-        controller_group = self.fetch_stack_resources('overcloud', 'Controller')
+        controller_group = self.fetch_stack_resources('overcloud',
+                                                      'Controller')
         if controller_group:
             ret['controller'] = controller_group
 
@@ -132,7 +133,6 @@ class TripleoInventory(object):
 
         print(json.dumps(ret))
 
-
     def host(self):
         # TODO(mandre)
         print(json.dumps({}))
@@ -147,7 +147,7 @@ class TripleoInventory(object):
                     password=self.configs.password,
                     project_name=self.configs.project_name)
                 self._ksclient.authenticate()
-            except Exception, e:
+            except Exception as e:
                 print("Error connecting to Keystone: {}".format(e.message),
                       file=sys.stderr)
                 sys.exit(1)
@@ -163,7 +163,7 @@ class TripleoInventory(object):
                 self._hclient = heat_client.Client(
                     endpoint=endpoint,
                     token=ksclient.auth_token)
-            except Exception, e:
+            except Exception as e:
                 print("Error connecting to Heat: {}".format(e.message),
                       file=sys.stderr)
                 sys.exit(1)
