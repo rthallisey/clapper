@@ -51,7 +51,7 @@ class YAML_HotValidator:
         if abs_path.endswith('yaml'):
             self.templates.insert(0, self.YAML_Hotfile(None, abs_path))
         else:
-            print('Wrong template file suffix (YAML expected).',file=sys.stderr)
+            print('Wrong template file suffix (YAML expected).')
             sys.exit(1)
 
         # Check environment files (-e)
@@ -60,8 +60,6 @@ class YAML_HotValidator:
                 abs_path = os.path.abspath(env)
                 if abs_path.endswith('yaml'):
                     self.environments.insert(0, self.YAML_Env(None, abs_path))
-
-        #print(self.environments, self.templates)
 
     class YAML_Types:
         ''' Enumerated reference get_ functions + properties:parameters reference '''
@@ -100,7 +98,7 @@ class YAML_HotValidator:
                 with open(self.path, 'r') as fd:
                     self.structure = yaml.load(fd.read())
             except IOError:
-                print('File ' + self.path + ' could not be opened.', file=sys.stderr)
+                print('File ' + self.path + ' could not be opened.')
                 sys.exit(1)
 
             # Save all parameters names and resources + properties
@@ -126,6 +124,7 @@ class YAML_HotValidator:
 
                     # Add child
                     self.children.append(templates[0])
+                    resource.child = templates[0]
 
                     # Start validating child
                     templates[0].validate_file(curr_nodes, templates, environments)
@@ -137,7 +136,7 @@ class YAML_HotValidator:
                 # skip those without nested structures
                 if type(instances) == dict:
 
-                    # iterate over instances (variables)
+                    # Iterate over instances (variables)
                     for variable, properties in six.iteritems(instances):
                         self.inspect_instances(properties, variable)
 
@@ -151,12 +150,10 @@ class YAML_HotValidator:
             '''
             if isinstance(properties, list):
                 for element in properties:
-                    #print (element)
                     if isinstance(element, dict) or isinstance(element, list):
                         self.inspect_instances(element, name)
             elif isinstance(properties, dict):
                 # Check references, mark used variables
-                #print (properties)
                 for key, value in six.iteritems(properties):
                     if key == 'get_param':
                         self.check_validity(value, name, YAML_HotValidator.YAML_Types.PARAMETER)
@@ -180,7 +177,7 @@ class YAML_HotValidator:
                 if value not in [x.name for x in self.resources]:
                     # Add it to invalid references
                     self.invalid.append(YAML_HotValidator.YAML_Reference(value, name,
-                                        YAML_HotValidator.YAML_Types.RESOURCE))
+                                        YAML_HotValidator.YAML_Types.RESOURCE, None))
                     self.ok = False
                 else:
                     for resource in self.resources:
@@ -195,7 +192,7 @@ class YAML_HotValidator:
                     if not ret[0]:
                         # Add it to invalid references
                             self.invalid.append(YAML_HotValidator.YAML_Reference(ret[1], name,
-                                            YAML_HotValidator.YAML_Types.PARAMETER))
+                                            YAML_HotValidator.YAML_Types.PARAMETER, None))
 
     #                    if (self.pretty_format):
     #                        print ('Parameter ' + YAML_colours.YELLOW + ret[1] + YAML_colours.DEFAULT +
@@ -212,7 +209,7 @@ class YAML_HotValidator:
 
                             # Add it to invalid references
                             self.invalid.append(YAML_HotValidator.YAML_Reference(value, name,
-                                                YAML_HotValidator.YAML_Types.PARAMETER))
+                                                YAML_HotValidator.YAML_Types.PARAMETER, None))
                             self.ok = False
 
                         elif (self.params[value] == False):
@@ -222,7 +219,7 @@ class YAML_HotValidator:
                 if type(value) == list:
                     if value[0] not in [x.name for x in self.resources]:
                         self.invalid.append(YAML_HotValidator.YAML_Reference(value[0], name,
-                                            YAML_HotValidator.YAML_Types.ATTRIBUTE))
+                                            YAML_HotValidator.YAML_Types.ATTRIBUTE, None))
                         self.ok = False
 
                     # if it is in a children node, check its first level of hierarchy
@@ -253,7 +250,7 @@ class YAML_HotValidator:
                                 break
                         if not flag:
                             self.invalid.append(YAML_HotValidator.YAML_Reference(value[0], name,
-                                                YAML_HotValidator.YAML_Types.ATTRIBUTE))
+                                                YAML_HotValidator.YAML_Types.ATTRIBUTE, None))
                             self.ok = False
 
 
@@ -302,13 +299,14 @@ class YAML_HotValidator:
     
                 if not flag:
                     self.invalid.append(YAML_HotValidator.YAML_Reference(par, resource.name,
-                                        YAML_HotValidator.YAML_Types.PROPERTY))
+                                        YAML_HotValidator.YAML_Types.PROPERTY, self.parent.path))
                     self.ok = False
     
             # Check used properties
             for prop in resource.properties.keys():
                 if prop in self.params.keys():
                     resource.properties[prop] = True
+
 
     class YAML_Env:
         ''' Class with attributes needed for work with environment files '''
@@ -334,6 +332,7 @@ class YAML_HotValidator:
         def __init__(self, name, resource_struct):
 
             self.type = resource_struct['type']
+            self.child = None
             self.name = name
             self.properties = {}
             self.isGroup = False
@@ -361,10 +360,11 @@ class YAML_HotValidator:
 
     class YAML_Reference:
         ''' Saves all invalid references for output. In YAML_Hotfile '''
-        def __init__(self, referent, element, ref_type):
+        def __init__(self, referent, element, ref_type, parent):
             self.referent = referent # name of referred element
             self.element = element   # in which resource was reference realized
             self.type = ref_type     # type of referred attribute (YAML_Types)
+            self.parent = parent     # used in property reference
 
     def load_environments(self):
 
@@ -379,7 +379,7 @@ class YAML_HotValidator:
                 with open(env_node.path, 'r') as fd:
                     env_node.structure = yaml.load(fd.read())
             except IOError:
-                print('File ' + env_node.path + ' could not be opened.', file=sys.stderr)
+                print('File ' + env_node.path + ' could not be opened.')
                 sys.exit(1)
 
             # Save mappings
@@ -401,6 +401,27 @@ class YAML_HotValidator:
                     env_node.children.insert(0, self.YAML_Hotfile(env_node, child))
                     self.mappings.append(env_node.children[0])
 
+    def load_mappings(self):
+        ''' Add all files mapped to resources as children in parent node '''
+
+        for hot in self.templates + self.mappings:
+            for res in hot.resources:
+                # If a mapped file exists
+                flag = False
+                for env in self.environments:
+                    for origin, mapped in six.iteritems(env.resource_registry):
+                        if res.type == origin:
+                            # Assign it to resource
+                            for m in self.mappings:
+                                if m.path == mapped and m.parent == env:
+                                    res.child = m
+                                    flag = True
+                                    break
+                        if flag:
+                            break
+                    if flag:
+                        break
+                                    
 
     def validate_env_params(self):
         ''' Checks parameters section of environment files '''
@@ -429,34 +450,8 @@ class YAML_HotValidator:
 
         # Go through all resources in current template
         for resource in template.resources:
-
-            # If type is YAML file
-            if resource.type.endswith('.yaml'):
-                for child in [x for x in self.mappings + self.templates if x.parent == template]:
-                    if resource.type == child.path:
-                        child.check_prop_par(resource, self.environments)
-
-                        # Also validate YAML template child node
-                        self.validate_properties(child)
-                        break
-
-            # If type is mapped to YAML file
-            else:
-                found = False
-
-                # For all mapping pairs in env files
-                for env in self.environments:
-                    for origin, mapped in six.iteritems(env.resource_registry):
-                        if resource.type == origin:
-                            for child in [x for x in self.mappings + self.templates if x.parent == env]:
-                                if child.path == mapped:
-                                    child.check_prop_par(resource, self.environments)
-                                    # Validating tree of mapped files is called from main
-                                    found = True
-                                    break
-                            break
-                    if found:
-                        break
+            if resource.child is not None:
+                self.validate_properties(resource.child)
 
 
     def print_output(self):
@@ -493,16 +488,15 @@ class YAML_HotValidator:
                     env.ok = False
                     if self.pretty_format:
                          print (YAML_colours.BOLD + 'Parameters without match in root template:' +
-                                YAML_colours.DEFAULT,file=sys.stderr)
+                                YAML_colours.DEFAULT)
                     else:
-                         print ('Parameters without match in root template:',file=sys.stderr)
+                         print ('Parameters without match in root template:')
                     for par in [x for x in list(env.params.keys())
                                 if env.params[x] == False]:
                         if self.pretty_format:
-                            print ('- ' + YAML_colours.YELLOW + par + YAML_colours.DEFAULT,
-                                   file=sys.stderr)
+                            print ('- ' + YAML_colours.YELLOW + par + YAML_colours.DEFAULT)
                         else:
-                            print ('- ' + par, file=sys.stderr)
+                            print ('- ' + par)
                     print('')
 
                 # Parameter_defaults section
@@ -510,17 +504,17 @@ class YAML_HotValidator:
                     env.ok = False
                     if self.pretty_format:
                         print (YAML_colours.BOLD + 'Parameter defaults without match:' +
-                               YAML_colours.DEFAULT, file=sys.stderr)
+                               YAML_colours.DEFAULT)
                     else:
-                        print ('Parameter defaults without match:',file=sys.stderr)
+                        print ('Parameter defaults without match:')
 
                     for par in [x for x in list(env.params_default.keys())
                                 if env.params_default[x] == False]:
                         if self.pretty_format:
                             print ('- ' + YAML_colours.YELLOW + par +
-                                    YAML_colours.DEFAULT,file=sys.stderr)
+                                    YAML_colours.DEFAULT)
                         else:
-                            print ('- ' + par,file=sys.stderr)
+                            print ('- ' + par)
                     print('')
 
                 # Print file status as OK if there were no problems
@@ -579,55 +573,54 @@ class YAML_HotValidator:
                             if self.pretty_format:
                                 print ('Resource ' + YAML_colours.YELLOW + ref.referent +
                                        YAML_colours.DEFAULT + ' referred in ' + YAML_colours.YELLOW +
-                                       ref.element + YAML_colours.DEFAULT + ' is not declared.',
-                                       file=sys.stderr)
+                                       ref.element + YAML_colours.DEFAULT + ' is not declared.')
                             else:
                                 print ('Resource ' + ref.referent + ' referred in ' + ref.element +
-                                       ' is not declared.', file=sys.stderr)
+                                       ' is not declared.')
 
                         elif ref.type == self.YAML_Types.PARAMETER:
                             if self.pretty_format:
                                 print ('Parameter ' + YAML_colours.YELLOW + ref.referent +
                                        YAML_colours.DEFAULT + ' referred in ' + YAML_colours.YELLOW +
-                                       ref.element + YAML_colours.DEFAULT + ' is not declared.',
-                                       file=sys.stderr)
+                                       ref.element + YAML_colours.DEFAULT + ' is not declared.')
                             else:
                                 print ('Parameter ' + ref.referent + ' referred in ' + ref.element +
-                                       ' is not declared.', file=sys.stderr)
+                                       ' is not declared.')
 
                         elif ref.type == self.YAML_Types.ATTRIBUTE:
                             if self.pretty_format:
                                 print ('Instance ' + YAML_colours.YELLOW + ref.referent + 
                                        YAML_colours.DEFAULT + ' referred by ' + YAML_colours.YELLOW +
                                        'get_attr' + YAML_colours.DEFAULT + ' in ' + YAML_colours.YELLOW +
-                                       ref.element + YAML_colours.DEFAULT + ' is not declared.',
-                                       file=sys.stderr)
+                                       ref.element + YAML_colours.DEFAULT + ' is not declared.')
                             else:
                                 print ('Instance ' + ref.referent + ' referred by get_attr in ' +
-                                       ref.element + ' is not declared.', file=sys.stderr)
+                                       ref.element + ' is not declared.')
 
                         elif ref.type == self.YAML_Types.PROPERTY:
                             if self.pretty_format:
                                 print('Parameter ' + YAML_colours.YELLOW + ref.referent +
                                       YAML_colours.DEFAULT + ' in ' + YAML_colours.YELLOW + ref.element +
-                            YAML_colours.DEFAULT + ' has no corresponding property.')
+                                      YAML_colours.DEFAULT + ' has no corresponding property in ' +
+                                      YAML_colours.YELLOW + ref.parent + YAML_colours.DEFAULT + '.')
+                            else:
+                                print('Parameter ' + ref.referent + ' in ' + ref.element +
+                                      ' has no corresponding property in' + ref.parent.path + '.')
                     print('')
 
                 # Unused parameters (optional) ??
                 if self.print_unused and (False in node.params.values()):
                     if self.pretty_format:
-                        print(YAML_colours.BOLD +  'Unused parameters:' + YAML_colours.DEFAULT,
-                              file=sys.stderr)
+                        print(YAML_colours.BOLD +  'Unused parameters:' + YAML_colours.DEFAULT)
                     else:
-                        print('Unused parameters:', file=sys.stderr)
+                        print('Unused parameters:')
 
                     for key, value in six.iteritems(node.params):
                         if value == False:
                             if self.pretty_format:
-                                print('- ' + YAML_colours.YELLOW + key + YAML_colours.DEFAULT,
-                                      file=sys.stderr)
+                                print('- ' + YAML_colours.YELLOW + key + YAML_colours.DEFAULT)
                             else:
-                                print('- ' + key, file=sys.stderr)
+                                print('- ' + key)
                     print('')
 
                 # Print unused properties
@@ -643,9 +636,9 @@ class YAML_HotValidator:
                     node.ok = False
                     if self.pretty_format:
                         print(YAML_colours.BOLD + 'Unused properties:' +
-                            YAML_colours.DEFAULT, file=sys.stderr)
+                            YAML_colours.DEFAULT)
                     else:
-                        print('Properties without corresponding parameter :', file=sys.stderr)
+                        print('Properties without corresponding parameter :')
 
                     for res in [x for x in node.resources if x.type.endswith('.yaml')]:
                         for prop, value in res.properties.iteritems():
@@ -662,17 +655,17 @@ class YAML_HotValidator:
                 if (self.print_unused) and [True for x in node.resources if not x.used]:
                     if (self.pretty_format):
                         print(YAML_colours.BOLD + 'Resources without reference:' +
-                              YAML_colours.DEFAULT, file=sys.stderr)
+                              YAML_colours.DEFAULT)
                     else:
-                        print('Resources without reference:', file=sys.stderr)
+                        print('Resources without reference:')
 
                     for resource in node.resources:
                         if resource.used == False:
                             if self.pretty_format:
                                 print('- ' + YAML_colours.YELLOW + resource.name + YAML_colours.DEFAULT +
-                                      ' (' + resource.type + ')', file=sys.stderr)
+                                      ' (' + resource.type + ')')
                             else:
-                                print('- ' + resource.name, file=sys.stderr)
+                                print('- ' + resource.name)
                     print('')
 
                 # Print file status as OK if there were no problems
@@ -727,6 +720,9 @@ def main():
     validator.templates[0].validate_file(validator.curr_nodes, validator.templates,
                                          validator.environments)
 
+    # Also add mapped files as children once there is a full structure of files
+    validator.load_mappings()
+
     # Check environment parameters against fully loaded HOT structure
     validator.validate_env_params()
 
@@ -737,10 +733,6 @@ def main():
         if hot.parent in validator.environments:
             validator.validate_properties(hot)
 
-    # TODO if there are multiple mappings of one origin, which one is used? - write warning/error
-    # TODO allow regular expression in mappings, indirect mapping that ends up in YAML
-    # TODO Check if root parameters have default or value? - require also -P ?
-
     # Print results
     validator.print_output()
 
@@ -748,3 +740,14 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+    # TODO section:
+    # TODO if there are multiple mappings of one origin, which one is used? - write warning/error
+    # TODO allow regular expression in mappings, indirect mapping that ends up in YAML
+    # TODO Check if root parameters have default or value? - require also -P ?
+    # TODO For multiple mappings to the same file in the same registry, validate/print only once
+    # TODO establish mapping between mapped files and hot templates even though they are validated separately
+    # TODO make outputs, attributes work for a following example:
+    # endpointmap = output in endpoint_map.yaml > in overcloud, resource EndpointMap of type OS::TripleO::EndpointMap mapped to endpoint_map.yaml
+    # in overcloud, resource Compute of type OS::Heat::ResourceGroup is mapped to puppet/compute.yaml, gives it property EndpointMap that gets endpointmap output from Endpointmap resource
+    # I am supposed to be able to track the reference made from compute.yaml to the output of endpoint_map.yaml
