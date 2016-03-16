@@ -94,7 +94,6 @@ class YAML_HotValidator:
 
             # Add current node at the beginning
             curr_nodes.insert(0, self)
-            #print(self.path, self.parent.path)
 
             # Open file
             try:
@@ -132,21 +131,6 @@ class YAML_HotValidator:
                     templates[0].validate_file(curr_nodes, templates, environments)
 
                     # Whole subtree with root = current node is validated
-
-                    # Check parameters and properties
-                    #self.validate_prop_par(self.children[-1], resource, environments)
-
-                # If its type is mapped to yaml file, check against mapping
-                # TODO: move elsewhere due to checking against not yet validated mapped file when going through mapped files
-                else:
-                    for env in environments:
-                        for origin, mapped in six.iteritems(env.resource_registry):
-                            if resource.type == origin:
-                                # Check properties and parameters
-                                for child in env.children:
-                                    if child.path == mapped:
-                                        pass
-                                        #self.validate_prop_par(child, resource, environments)
 
             # Iterate over sections (all children validated by now)
             for section, instances in six.iteritems(self.structure):
@@ -746,7 +730,7 @@ def main():
     # Check environment parameters against fully loaded HOT structure
     validator.validate_env_params()
 
-    # check properties x parameters
+    # Check properties x parameters
     validator.validate_properties(validator.templates[-1])
 
     for hot in list(reversed(validator.mappings)):
@@ -754,8 +738,7 @@ def main():
             validator.validate_properties(hot)
 
     # TODO if there are multiple mappings of one origin, which one is used? - write warning/error
-
-
+    # TODO allow regular expression in mappings, indirect mapping that ends up in YAML
     # TODO Check if root parameters have default or value? - require also -P ?
 
     # Print results
