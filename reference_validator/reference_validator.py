@@ -300,6 +300,32 @@ class YAML_HotValidator:
                     return (False, ele)
             return (True, None)
 
+
+        def check_prop_par(self, resource, environments):
+            ''' Check properties against parameters and vice versa, tag used. '''         
+    
+            # Check if parameters have default or value from props
+            for par in self.params.keys():
+                flag = False
+                if ((par not in resource.properties.keys()) and
+                    (not 'default' in self.structure['parameters'][par])):
+                    for env in environments:
+                        if par in list(env.params_default.keys()):
+                            env.params_default[par] = True
+                            flag = True
+                else:
+                    flag = True
+    
+                if not flag:
+                    self.invalid.append(YAML_HotValidator.YAML_Reference(par, resource.name,
+                                        YAML_HotValidator.YAML_Types.PROPERTY))
+                    self.ok = False
+    
+            # Check used properties
+            for prop in resource.properties.keys():
+                if prop in self.params.keys():
+                    resource.properties[prop] = True
+
     class YAML_Env:
         ''' Class with attributes needed for work with environment files '''
 
@@ -413,63 +439,41 @@ class YAML_HotValidator:
                         env.params_default[par] = True
                         break
 
-    # TODO go through tree of files, not just the list
-    def validate_properties(self):
-        ''' Validate properties x parameters '''
 
-        # Go through all resources
-        for hot in self.templates + self.mappings:
-            for resource in hot.resources:
+    def validate_properties(self, template):
+        ''' Validate properties x parameters in tree of templates '''
 
-                # If type is YAML file
-                if resource.type.endswith('.yaml'):
-                    for child in [self.mappings + self.templates]:
-                        if (resource.type == child.path) and (child.parent == hot):
-                            self.check_prop_par(child, resource)
-                            break
+        # Go through all resources in current template
+        for resource in template.resources:
 
-                # If type is mapped to YAML file
-                else:
-                    found = False
-                    for env in self.environments:
-                        for origin, mapped in six.iteritems(env.resource_registry):
-                            if resource.type == origin:
-                                for child in self.mappings + self.templates:
-                                    if child.path == mapped:
-                                        self.check_prop_par(child, resource)
-                                        found = True
-                                        break
-                                break
-                        if found:
-                            break
+            # If type is YAML file
+            if resource.type.endswith('.yaml'):
+                for child in [x for x in self.mappings + self.templates if x.parent == template]:
+                    if resource.type == child.path:
+                        child.check_prop_par(resource, self.environments)
 
-    def check_prop_par(self, child, resource):
-        ''' Check properties against parameters and vice versa, tag used. '''         
+                        # Also validate YAML template child node
+                        self.validate_properties(child)
+                        break
 
-        # Check if parameters have default or value from props
-        for par in child.params.keys():
-            flag = False
-            if ((par not in resource.properties.keys()) and
-                (not 'default' in child.structure['parameters'][par])):
-                for env in self.environments:
-                    if par in list(env.params_default.keys()):
-                        env.params_default[par] = True
-                        flag = True
+            # If type is mapped to YAML file
             else:
-                flag = True
+                found = False
 
-            if not flag:
-                self.invalid.append(self.YAML_Reference(par, resource.name,
-                                    self.YAML_Types.PROPERTY))
-                child.ok = False # TODO FIX
+                # For all mapping pairs in env files
+                for env in self.environments:
+                    for origin, mapped in six.iteritems(env.resource_registry):
+                        if resource.type == origin:
+                            for child in [x for x in self.mappings + self.templates if x.parent == env]:
+                                if child.path == mapped:
+                                    child.check_prop_par(resource, self.environments)
+                                    # Validating tree of mapped files is called from main
+                                    found = True
+                                    break
+                            break
+                    if found:
+                        break
 
-        # Check used properties
-        for prop in resource.properties.keys():
-            if prop in child.params.keys():
-                resource.properties[prop] = True
-
-    def validate_root_params(self):
-        ''' Checks availability of values of parameters in root template '''
 
     def print_output(self):
         ''' Prints results of validation for all files. '''
@@ -478,9 +482,17 @@ class YAML_HotValidator:
         if self.environments:
             if self.pretty_format:
                 print(YAML_colours.ORANGE + YAML_colours.BOLD + YAML_colours.UNDERLINE + 'Environments:' +
-                      YAML_colours.DEFAULT + '\n')
+                      YAML_colours.DEFAULT)
             else:
-                print('Environments:\n')
+                print('Environments:')
+
+            # Print total
+            if self.pretty_format:
+                print(YAML_colours.BOLD + 'Total: ' + str(len(self.environments)) +
+                      YAML_colours.DEFAULT)
+            else:
+                print ('Total: ' + str(len(self.environments)))
+            print('')
 
             for env in self.environments:
 
@@ -549,9 +561,17 @@ class YAML_HotValidator:
         for hot in [x for x in [rev_templates, list(reversed(self.mappings))] if len(x)]:
             if self.pretty_format: 
                 print(YAML_colours.ORANGE + YAML_colours.BOLD + YAML_colours.UNDERLINE + ('HOT Files:' if hot == rev_templates else 'Mapped HOT Files:') +
-                      YAML_colours.DEFAULT + '\n')
+                      YAML_colours.DEFAULT)
             else:
-                print(('HOT Files:' if hot == rev_templates else 'Mapped HOT Files:') + '\n')
+                print(('HOT Files:' if hot == rev_templates else 'Mapped HOT Files:'))
+            
+            # Print total
+            if self.pretty_format:
+                print(YAML_colours.BOLD + 'Total: ' + str(len(self.templates) if hot == rev_templates else len(self.mappings)) +
+                      YAML_colours.DEFAULT)
+            else:
+                print ('Total: ' + str(len(self.templates) if hot == rev_templates else len(self.mappings)))
+            print('')
 
             for node in hot:
 
@@ -726,9 +746,17 @@ def main():
     # Check environment parameters against fully loaded HOT structure
     validator.validate_env_params()
 
-    # TODO check parameters for root template + props x params everywhere
-    validator.validate_properties()
+    # check properties x parameters
+    validator.validate_properties(validator.templates[-1])
+
+    for hot in list(reversed(validator.mappings)):
+        if hot.parent in validator.environments:
+            validator.validate_properties(hot)
+
     # TODO if there are multiple mappings of one origin, which one is used? - write warning/error
+
+
+    # TODO Check if root parameters have default or value? - require also -P ?
 
     # Print results
     validator.print_output()
