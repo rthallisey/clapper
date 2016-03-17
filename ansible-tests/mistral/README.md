@@ -38,9 +38,11 @@ Load the `tripleo.validations` workbook:
 
     $ mistral workbook-create validations_workbook.yaml
 
-## Running a validation using the mistral action
 
-Run the `tripleo.run_validation` action with mistral client:
+## Running mistral actions directly
+
+Run the `tripleo.run_validation` or `tripleo.list_validations` actions with
+mistral client:
 
     mistral run-action -s tripleo.run_validation 512e
 
@@ -50,9 +52,10 @@ It will be run asynchronously and store the result in the mistral DB. Run
 
 The output is whatever dict we return from our Python code converted to json.
 
+
 ## Running validations using the mistral workflow
 
-Create an json context file containing the arguments passed to the workflow:
+Create a context.json file containing the arguments passed to the workflow:
 
     {
       "validation_names": ["512e", "rabbitmq-limits"]
@@ -62,9 +65,15 @@ Run the `tripleo.validations.run` workflow with mistral client:
 
     mistral execution-create tripleo.validations.run context.json
 
-## TODO
 
-* actions to:
-  * get validation groups
-  * run a group of validations
-* ton of other stuff
+## Running groups of validations
+
+Create a context.json file containing the arguments passed to the workflow:
+
+    {
+      "group_names": ["network", "post-deployment"]
+    }
+
+Run the `tripleo.validations.run_group` workflow with mistral client:
+
+    mistral execution-create tripleo.validations.run_group context.json

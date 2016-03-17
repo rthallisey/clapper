@@ -16,3 +16,35 @@ workflows:
       run_validation:
         action: tripleo.run_validation validation=<% $.validation %>
         with-items: validation in <% $.validation_names %>
+
+  list:
+
+    type: direct
+
+    input:
+      - group_names: []
+
+    tasks:
+
+      find_validations:
+        action: tripleo.list_validations groups=<% $.group_names %>
+
+
+  run_group:
+
+    type: direct
+
+    input:
+      - group_names: []
+
+    tasks:
+
+      find_validations:
+        on-success: run_validation_group
+        action: tripleo.list_validations groups=<% $.group_names %>
+        publish:
+          validations: <% $.find_validations %>
+
+      run_validation_group:
+        action: tripleo.run_validation validation=<% $.validation %>
+        with-items: validation in <% $.validations.id %>
