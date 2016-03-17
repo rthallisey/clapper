@@ -5,6 +5,26 @@ description: TripleO Validations Workflows
 
 workflows:
 
+  run_and_notify:
+    type: direct
+
+    input:
+      - validation_name
+
+    tasks:
+
+      run_validation:
+        on-success: notify_zaqar
+        action: tripleo.run_validation validation=<% $.validation_name %>
+        publish:
+          run_results: <% $.run_validation %>
+
+      notify_zaqar:
+        # TODO(mandre) properly publish on zaqar's queue
+        # action: zaqar.queue_post queue_name="tripleo_validations" messages=<% $.run_results %>
+        action: std.echo output=<% $.run_results %>
+
+
   run:
     type: direct
 
@@ -13,8 +33,8 @@ workflows:
 
     tasks:
 
-      run_validation:
-        action: tripleo.run_validation validation=<% $.validation %>
+      run_validations:
+        workflow: tripleo.validations.run_and_notify validation_name=<% $.validation %>
         with-items: validation in <% $.validation_names %>
 
   list:
@@ -46,5 +66,5 @@ workflows:
           validations: <% $.find_validations %>
 
       run_validation_group:
-        action: tripleo.run_validation validation=<% $.validation %>
+        workflow: tripleo.validations.run_and_notify validation_name=<% $.validation %>
         with-items: validation in <% $.validations.id %>

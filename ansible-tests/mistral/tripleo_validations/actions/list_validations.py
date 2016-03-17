@@ -64,7 +64,7 @@ def get_remaining_metadata(validation):
 
 
 class ListValidations(base.Action):
-    def __init__(self, groups=[]):
+    def __init__(self, groups=None):
         self.groups = groups
 
     def run(self):
