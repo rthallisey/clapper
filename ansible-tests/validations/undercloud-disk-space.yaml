@@ -5,6 +5,8 @@
       name: Disk Size of Undercloud Root Partition
       description: >
         Make sure that the root partition on the undercloud node is large enough.
+      groups:
+        - discovery
     # NOTE(shadower): This is slightly lower than the size of the
     # Instack VM in the virt environment. I'm assuming that's a good
     # aproximation of "large enough". We may need to tweak this later.

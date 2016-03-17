@@ -6,6 +6,8 @@
       description: >
         Detect whether the undercloud disks use Advanced Format. If they do,
         the overcloud images may fail to upload to Glance.
+      groups:
+        - discovery
   tasks:
   - name: List the available drives
     register: drive_list

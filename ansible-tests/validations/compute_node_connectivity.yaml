@@ -3,6 +3,8 @@
   vars:
     metadata:
       name: Check connectivity of the compute nodes.
+      groups:
+        - network
 
   tasks:
   - name: Run ping test

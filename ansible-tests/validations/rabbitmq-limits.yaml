@@ -5,6 +5,8 @@
       name: Rabbitmq limits
       description: >
         Make sure the rabbitmq file descriptor limits are set to reasonable values.
+      groups:
+        - post-deployment
     min_fd_limit: 10000
   tasks:
   - name: Get file_descriptors total_limit

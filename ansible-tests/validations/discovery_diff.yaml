@@ -4,6 +4,8 @@
     metadata:
       name: Provide difference in hardware configuration
       description: This test provides difference in configuration based on data collected in ironic-inspector
+      groups:
+        - discovery
   tasks:
   - name: Run the Discovery diff
     discovery_diff:
