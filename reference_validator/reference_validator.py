@@ -188,7 +188,7 @@ class YAML_HotValidator:
             # Parameter
             elif section == YAML_HotValidator.YAML_Types.PARAMETER:
                 if type(value) == list:
-                    ret = self.check_param_hierarchy(value)
+                    ret = self.check_param_hierarchy(value, name)
                     if not ret[0]:
                         # Add it to invalid references
                             self.invalid.append(YAML_HotValidator.YAML_Reference(ret[1], name,
@@ -204,7 +204,8 @@ class YAML_HotValidator:
     #                                name + ' is not declared.', file=sys.stderr)
                             self.ok = False
                 else:
-                    if not self.detect_pseudoparam(value):
+                    # Check if it is a pseudoparameter
+                    if value not in ['OS::stack_name', 'OS::stack_id', 'OS::project_id']:
                         if value not in list(self.params.keys()):
 
                             # Add it to invalid references
@@ -215,7 +216,7 @@ class YAML_HotValidator:
                         elif (self.params[value] == False):
                            self.params[value] = True
 
-            elif section == YAML_HotValidator.YAML_Types.ATTRIBUTE:
+            elif section == YAML_HotValidator.YAML_Types.ATTRIBUTE: # TDO add check for hierarchy
                 if type(value) == list:
                     if value[0] not in [x.name for x in self.resources]:
                         self.invalid.append(YAML_HotValidator.YAML_Reference(value[0], name,
@@ -231,7 +232,7 @@ class YAML_HotValidator:
                                 for f in self.children:
                                     if r.type == f.path:
 
-                                        # outputs_list used in case of group
+                                        # outputs_list used in case of autoscaling group TODO ASG x RG
                                         if ((len(value) >= 3) and r.isGroup and
                                             (value[1] == 'outputs_list') and
                                             (value[2] in f.outputs)):
@@ -254,31 +255,37 @@ class YAML_HotValidator:
                             self.ok = False
 
 
-        def detect_pseudoparam(self, value):
-            ''' Skip get_param check for OS::stack_name, OS::stack_id and OS::project_id.
-                value - string to be checked
+        def check_attr_hierarchy(self, hierarchy, name):
+            ''' When access path to variable entered, check validity of hierarchy of output.
+                hierarchy - list of keys used for accessing value
             '''
+            return
 
-            return (value in ['OS::stack_name', 'OS::stack_id', 'OS::project_id'])
-
-
-        def check_param_hierarchy(self, hierarchy): # TODO: improve output info
-            ''' When access path to variable entered, check validity of hierarchy.
+        def check_param_hierarchy(self, hierarchy, name): # TODO: improve output info
+            ''' When access path to variable entered, check validity of hierarchy of input.
                 hierarchy - list of keys used for accessing value
             '''
             root = self.structure['parameters']
 
             # Validate path to value
             for ele in hierarchy:
-                if ele in root:
-                    root = root[ele]
-                    
-                # For params with json type, allow for "default KV section"
-                elif (('default' in root) and 
-                      (self.structure['parameters'][hierarchy[0]]['type'] == 'json')):
-                    root = root['default']
+                if type(ele) == str:
+                    if ele.isdigit(): # TODO points to smth in a group, check if it is a group
+                        pass
+                    elif ele in (root.keys() if type(root) == dict else root): # ERROR due to embedded get_param
+                        root = root[ele]
+                    # For params with json type, allow for "default KV section"
+                    elif (('default' in root) and 
+                        (self.structure['parameters'][hierarchy[0]]['type'] == 'json')):
+                        root = root['default']
+                    else:
+                        return (False, ele)
+                elif type(ele) == int: # in case of...index to string?? wtf
+                    pass
                 else:
-                    return (False, ele)
+                    # TODO somehow get the result of get_X, path in structure or smth
+                    self.inspect_instances(ele, name)
+                    print (ele)
             return (True, None)
 
 
@@ -318,7 +325,7 @@ class YAML_HotValidator:
             self.parent = parent_node
             self.children = []
 
-            self.resource_registry = {} # original type: mapped type
+            self.resource_registry = {} # original type: mapped type [, resource]
             self.params = {}            # additional parameters, only for root file -f
             self.params_default = {}    # default values, can replace property in property>param anywhere
 
@@ -385,7 +392,15 @@ class YAML_HotValidator:
             # Save mappings
             if 'resource_registry' in env_node.structure:
                 for origin, custom in six.iteritems(env_node.structure['resource_registry']):
-                    env_node.resource_registry[origin] = custom
+                    if type(custom) == str:
+                        env_node.resource_registry[origin] = custom
+                    elif origin == 'resources':
+                        # Find if there is any mapping (hooks etc are not important)                        
+                        for res in env_node.structure['resource_registry']['resources'].keys():
+                            for key, value in six.iteritems(env_node.structure['resource_registry']['resources'][res]):
+                                # Add indirect mapping using regexp - multiple indentations
+                                if (type(value) == str) and (value.endswith('.yaml')):
+                                    env_code.resource_registry[key] = [value, res]
 
             # Save additional parameters + parameters with default values
             if 'parameters' in env_node.structure:
@@ -397,7 +412,8 @@ class YAML_HotValidator:
                     env_node.params_default[par] = False
 
             for child in list(env_node.resource_registry.values()):
-                if child.endswith('.yaml'):
+                if ((type(child) == str and child.endswith('.yaml')) or
+                    ((type(child) == list) and child[0].endswith('.yaml'))):
                     env_node.children.insert(0, self.YAML_Hotfile(env_node, child))
                     self.mappings.append(env_node.children[0])
 
@@ -413,7 +429,9 @@ class YAML_HotValidator:
                         if res.type == origin:
                             # Assign it to resource
                             for m in self.mappings:
-                                if m.path == mapped and m.parent == env:
+                                if (((type(mapped) == str) and (m.path == mapped)) or
+                                    ((type(mapped) == list) and (m.path == mapped[0]))
+                                    and (m.parent == env)):
                                     res.child = m
                                     flag = True
                                     break
@@ -421,7 +439,7 @@ class YAML_HotValidator:
                             break
                     if flag:
                         break
-                                    
+
 
     def validate_env_params(self):
         ''' Checks parameters section of environment files '''
@@ -499,9 +517,8 @@ class YAML_HotValidator:
                             print ('- ' + par)
                     print('')
 
-                # Parameter_defaults section
-                if False in list(env.params_default.values()):
-                    env.ok = False
+                # Parameter_defaults section (optional)
+                if self.print_unused and (False in list(env.params_default.values())):
                     if self.pretty_format:
                         print (YAML_colours.BOLD + 'Parameter defaults without match:' +
                                YAML_colours.DEFAULT)
@@ -707,11 +724,11 @@ def main():
     validator.load_environments()
 
     # Validate HOTs in mappings
+    # All mappings are at the beginning, followed by children nodes
     for hot in list(reversed(validator.mappings)):
         if hot.parent in validator.environments:
             os.chdir(os.path.dirname(hot.parent.path))
             hot.validate_file(validator.curr_nodes, validator.mappings, validator.environments)
-        # All mappings are at the beginning, followed by their children
         else:
             break
 
@@ -740,14 +757,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-    # TODO section:
-    # TODO if there are multiple mappings of one origin, which one is used? - write warning/error
-    # TODO allow regular expression in mappings, indirect mapping that ends up in YAML
-    # TODO Check if root parameters have default or value? - require also -P ?
-    # TODO For multiple mappings to the same file in the same registry, validate/print only once
-    # TODO establish mapping between mapped files and hot templates even though they are validated separately
-    # TODO make outputs, attributes work for a following example:
-    # endpointmap = output in endpoint_map.yaml > in overcloud, resource EndpointMap of type OS::TripleO::EndpointMap mapped to endpoint_map.yaml
-    # in overcloud, resource Compute of type OS::Heat::ResourceGroup is mapped to puppet/compute.yaml, gives it property EndpointMap that gets endpointmap output from Endpointmap resource
-    # I am supposed to be able to track the reference made from compute.yaml to the output of endpoint_map.yaml
