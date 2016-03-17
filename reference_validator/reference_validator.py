@@ -33,6 +33,9 @@ class YAML_HotValidator:
         # in environments, mappings, templates: all nodes with references to parent/children
         # in curr_nodes: currently validated nodes (DFS - depth-first search)
 
+        # Save initial directory
+        self.init_dir = os.getcwd()
+
         # List of YAML files to be checked + referenced children nodes
         self.environments = []
         self.mappings = []
@@ -516,9 +519,9 @@ class YAML_HotValidator:
                 # Print title
                 if self.pretty_format:
                     print(YAML_colours.BOLD + YAML_colours.UNDERLINE + 'File ' + YAML_colours.BLUE +
-                          env.path + YAML_colours.DEFAULT)
+                          os.path.relpath(env.path, self.init_dir) + YAML_colours.DEFAULT)
                 else:
-                    print('File ' + env.path)
+                    print('File ' + os.path.relpath(env.path, self.init_dir))
                 print('')
 
                 # Parameters section
@@ -599,9 +602,9 @@ class YAML_HotValidator:
                 
                 # Print parent node for better navigation
                 if self.pretty_format:
-                    print(YAML_colours.BOLD + 'Parent: ' + YAML_colours.DEFAULT + (node.parent.path if (node.parent is not None) else 'None (root)'))
+                    print(YAML_colours.BOLD + 'Parent: ' + YAML_colours.DEFAULT + (os.path.relpath(node.parent.path, self.init_dir) if (node.parent is not None) else 'None (root)'))
                 else:
-                    print('Parent: ' + (node.parent.path if (node.parent is not None) else 'None (root)'))
+                    print('Parent: ' + (os.path.relpath(node.parent.path, self.init_dir) if (node.parent is not None) else 'None (root)'))
                 print('')
 
                 # Invalid references
@@ -645,10 +648,10 @@ class YAML_HotValidator:
                                 print('Parameter ' + YAML_colours.YELLOW + ref.referent + YAML_colours.DEFAULT +
                                       ' has no corresponding default or property in ' +  YAML_colours.YELLOW + 
                                       ref.element + YAML_colours.DEFAULT + ' in ' + 
-                                      YAML_colours.YELLOW + ref.parent + YAML_colours.DEFAULT + '.')
+                                      YAML_colours.YELLOW + os.path.relpath(ref.parent, self.init_dir) + YAML_colours.DEFAULT + '.')
                             else:
                                 print('Parameter ' + ref.referent + ' has no corresponding default or property in' +
-                                ref.element + ' in ' + ref.parent.path + '.')
+                                ref.element + ' in ' + os.path.relpath(ref.parent.path, self.init_dir) + '.')
                     print('')
 
                 # Unused parameters (optional) ??
