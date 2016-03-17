@@ -34,7 +34,11 @@ Install the `tripleo-validations` python module using the deploy.sh script:
     $ cd clapper/ansible-tests/mistral
     $ sudo ./deploy.sh
 
-## Running a validation
+Load the `tripleo.validations` workbook:
+
+    $ mistral workbook-create validations_workbook.yaml
+
+## Running a validation using the mistral action
 
 Run the `tripleo.run_validation` action with mistral client:
 
@@ -45,6 +49,18 @@ It will be run asynchronously and store the result in the mistral DB. Run
 `mistral action-execution-get-output <uuid>` to get a particular run's output.
 
 The output is whatever dict we return from our Python code converted to json.
+
+## Running validations using the mistral workflow
+
+Create an json context file containing the arguments passed to the workflow:
+
+    {
+      "validation_names": ["512e", "rabbitmq-limits"]
+    }
+
+Run the `tripleo.validations.run` workflow with mistral client:
+
+    mistral execution-create tripleo.validations.run context.json
 
 ## TODO
 

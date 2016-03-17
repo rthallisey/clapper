@@ -1,0 +1,18 @@
+---
+version: '2.0'
+name: tripleo.validations
+description: TripleO Validations Workflows
+
+workflows:
+
+  run:
+    type: direct
+
+    input:
+      - validation_names: []
+
+    tasks:
+
+      run_validation:
+        action: tripleo.run_validation validation=<% $.validation %>
+        with-items: validation in <% $.validation_names %>
