@@ -8,5 +8,6 @@
 - include: ../validations/discovery_diff.yaml
 - include: ../validations/undercloud-disk-space.yaml
 - include: ../validations/undercloud-ram.yaml
+- include: ../validations/undercloud-cpu.yaml
 - include: ../validations/512e.yaml
 - include: ../validations/check-network-gateway.yaml
