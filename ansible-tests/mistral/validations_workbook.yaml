@@ -68,3 +68,15 @@ workflows:
       run_validation_group:
         workflow: tripleo.validations.run_and_notify validation_name=<% $.validation %>
         with-items: validation in <% $.validations.id %>
+
+
+  # TODO(mandre) not sure a workflow is necessary as it's only constituted of
+  # a single action, we could probably just execute the action directly
+  list_groups:
+
+    type: direct
+
+    tasks:
+
+      find_groups:
+        action: tripleo.list_groups

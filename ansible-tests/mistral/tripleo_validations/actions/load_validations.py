@@ -27,7 +27,7 @@ def get_validation_metadata(validation, key):
         LOG.exception("Failed to get validation metadata.")
 
 
-def load_validations(groups):
+def load_validations(groups=None):
     '''Loads all validations.'''
     paths = glob.glob('{}/*.yaml'.format(VALIDATIONS_DIR))
     results = []
@@ -41,6 +41,7 @@ def load_validations(groups):
                     'id': os.path.splitext(
                         os.path.basename(validation_path))[0],
                     'name': get_validation_metadata(validation, 'name'),
+                    'groups': get_validation_metadata(validation, 'groups'),
                     'description': get_validation_metadata(validation,
                                                            'description'),
                     'require_plan': get_validation_metadata(validation,
@@ -58,7 +59,7 @@ def get_remaining_metadata(validation):
                 return dict()
 
         return {k: v for k, v in validation[0]['vars']['metadata'].items()
-                if k not in ['name', 'description', 'require_plan']}
+                if k not in ['name', 'description', 'require_plan', 'groups']}
     except KeyError:
         return dict()
 
@@ -69,3 +70,14 @@ class ListValidations(base.Action):
 
     def run(self):
         return load_validations(self.groups)
+
+
+class ListGroups(base.Action):
+    def __init__(self):
+        pass
+
+    def run(self):
+        validations = load_validations()
+        return { group for validation in validations
+                for group in validation['groups'] }
+
