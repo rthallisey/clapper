@@ -6,6 +6,7 @@ Reference Validator
 <h2> Requirements </h2>
 
  - pyyaml
+ - six
 
 <h2> Introduction </h2>
 
