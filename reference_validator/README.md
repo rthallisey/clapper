@@ -1,25 +1,28 @@
 Reference Validator
 ===================
 
+<h1> WARNING: Work in progress, may return invalid results </h1>
+
 <h2> Requirements </h2>
- 
+
  - pyyaml
+
+<h2> Introduction </h2>
+
+This script goes through all HOT files associated with root template, taking mapped resources from environment files into account. It validates references and detects unused variables/instances in YAML files. It accepts the same basic parameters as heat (root template and environments).
 
 <h2> Usage </h2>
 
-This script validates references and detects unused variables in YAML files. It does not detect variables beyond scope of currently opened file. Therefore, it cannot be used to validate references to variables defined by Heat.
+    $ python[3] reference_validator.py -f <path/to/yaml/root template> -e <path/to/yaml/environment file>[<another/path/to/env/files>] [-p/--pretty-format] [-u/--unused] [-h/--help]
 
-    $ python reference_validator.py <path/to/yaml/files> [another/path/to/files] [-r/--recursive] [-u/--unused-resources] [-h/--help]
-
-<b> Parameters </b>
+<h3> Parameters </h3>
 <ul>
-<li> `path/to/file` is absolute/relative path to file/directory containing YAML files. </li>
-<li> `-r/--recursive` causes scanning subdirectories of a given path for YAML files. </li>
-<li> `-u/--unused-resources` causes printing resources that are not referred to in YAML file.</li>
+<li> `-f` is an absolute/relative path to root HOT template. </li>
+<li> `-e` is an absolute/relative path to environment file(s). </li>
+<li> `-p/--pretty-format` when selected, the output is colourful. </li>
+<li> `-u/--unused` causes printing additional info (unused instances without reference).</li>
 </ul>
 
 <b> Output </b>
 
-Script returns all invalid references including name about instance where the reference is used and a list of all unused parameters (and optionally resources).
-
-TODO: formatted output
+Script prints the result to standard output. The result contains a list of all associated files containing invalid references and info about involved instances. Optionally, it also prints a list of all unused instances.
