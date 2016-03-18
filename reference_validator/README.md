@@ -1,7 +1,7 @@
 Reference Validator
 ===================
 
-<h1> <font color="red"> WARNING </font>: Work in progress, may return invalid results </h1>
+<h1>WARNING: Work in progress, may return invalid results </h1>
 
 <h2> Requirements </h2>
 
