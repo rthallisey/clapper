@@ -7,6 +7,8 @@ The purpose of the code here is to provide checks that can find issues with a Tr
 
 We plan to move the API to the TripleO API efforts.
 
+After the generic explanation is a couple of concrete examples.
+
 
 Directory Structure
 -------------------
@@ -148,3 +150,174 @@ In general, Ansible and the validations will be located on the *undercloud*, bec
 
     $ cd clapper/ansible-tests
     $ ansible-playbook -v -i hosts tripleo-ansible-inventory.py validations/some_validation.yaml
+
+
+Example: Verify Undercloud RAM requirements
+---------------------------------------------
+
+
+The Undercloud has a requirement of 16GB RAM. Let's write a validation
+that verifies this is indeed the case before deploying anything.
+
+Let's create `validations/undercloud-ram.yaml` and put some metadata in there:
+
+```
+---
+- hosts: undercloud
+  vars:
+    metadata:
+      name: Minimum RAM required on the undercloud
+      description: >
+        Make sure the undercloud has enough RAM.
+```
+
+The `hosts` key will tell us which server should the validation run
+on. The common values are `undercloud`, `overcloud` (i.e. all
+overcloud nodes), `controller` and `compute` (i.e. just the controller
+or the compute nodes).
+
+The `name` and `description` metadata will show up in the API and the
+TripleO UI so make sure you put something meaningful there.
+
+Now let's add an Ansible task so we can test that it's all set up
+properly. Add this under the same indentation as `hosts` and `vars`:
+
+```
+  tasks:
+  - name: Test Output
+    debug: msg="Hello World!"
+```
+
+Run it from inside the `clapper/ansible-tests` directory like this
+`ansible-playbook -i tripleo-ansible-inventory.py
+validations/undercloud-ram.yaml`.
+
+You should see something like this:
+
+```
+$ ansible-playbook -i tripleo-ansible-inventory.py validations/undercloud-ram.yaml
+
+PLAY [undercloud] *************************************************************
+
+GATHERING FACTS ***************************************************************
+ok: [localhost]
+
+TASK: [Test Output] ***********************************************************
+ok: [localhost] => {
+    "msg": "Hello World!"
+}
+
+PLAY RECAP ********************************************************************
+localhost                  : ok=2    changed=0    unreachable=0    failed=0
+```
+
+Writing the full validation code is quite easy in this case because
+Ansible has done all the hard work for us already. We can use the
+`ansible_memtotal_mb` fact to get the amount of RAM (in megabytes) the
+tested server currently has. For other useful values, run `ansible -i
+tripleo-ansible-inventory.py undercloud -m setup`.
+
+So, let's replace the hello world task with a real one:
+
+```
+  tasks:
+  - name: Verify the RAM requirements
+    fail: msg="The RAM on the undercloud node is {{ ansible_memtotal_mb }} MB, the minimal recommended value is 16 GB."
+    failed_when: "({{ ansible_memtotal_mb }}) < 16000"
+```
+
+Running this, I see:
+
+```
+TASK: [Verify the RAM requirements] *******************************************
+failed: [localhost] => {"failed": true, "failed_when_result": true}
+msg: The RAM on the undercloud node is 8778 MB, the minimal recommended value is 16 GB.
+```
+
+Because my Undercloud node really does not have enough RAM. Your
+mileage may vary.
+
+Either way, the validation works!
+
+`failed_when` is the real hero here: it evaluates an ansible
+expression (e.g. does the node have more than 16 GB of RAM) and fails
+when it's true.
+
+The `fail` line right above it lets us print a custom error in case of
+a failure. If the task succeeds (becaues we do have enough RAM),
+nothing will be printed out.
+
+
+Now, we're almost done, but there are a few things we can do to make
+this nicer on everybody.
+
+First, let's hoist the minimum RAM requirement into a variable. That
+way we'll have one place where to change it if we need to and we'll
+be able to test the validation better as well!
+
+So, let's call the variable `minimum_ram_gb` and set it to `16`. Do
+this in the `vars` section:
+
+```
+  vars:
+    metadata:
+      name: ...
+      description: ...
+    minimum_ram_gb: 16
+```
+
+Make sure it's on the same indentation level as `metadata`.
+
+Then, update `failed_when` like this:
+
+    failed_when: "({{ ansible_memtotal_mb }}) < {{ minimum_ram_gb|int * 1024 }}"
+
+And `fail` like so:
+
+    fail: msg="The RAM on the undercloud node is {{ ansible_memtotal_mb }} MB, the minimal recommended value is {{ minimum_ram_gb|int * 1024 }} MB."
+
+And re-run it again to be sure it's still working.
+
+One benefit of using a variable instead of a hardcoded value is that
+we can now change the value without editing the yaml file!
+
+Let's do that to test both success and failure cases.
+
+This should succeed but saying the RAM requirement is 1 GB:
+
+    ansible-playbook -i tripleo-ansible-inventory.py validations/undercloud-ram.yaml -e minimum_ram_gb=1
+
+And this should fail buy requiring much more RAM than is necessary:
+
+    ansible-playbook -i tripleo-ansible-inventory.py validations/undercloud-ram.yaml -e minimum_ram_gb=128
+
+(the actual values may be different in your configuration -- just make
+sure one is low enough and the other too high)
+
+
+And that's it! The validation is now finished and you can start using
+it in earnest.
+
+
+Please consider submitting a pull request at the
+[validation repository][clapper] to make any future deployments go
+smoother.
+
+[clapper]: https://github.com/rthallisey/clapper
+
+
+For reference, here's the full validation:
+
+```
+---
+- hosts: undercloud
+  vars:
+    metadata:
+      name: Minimum RAM required on the undercloud
+      description: Make sure the undercloud has enough RAM.
+    minimum_ram_gb: 16
+  tasks:
+  - name: Verify the RAM requirements
+    fail: msg="The RAM on the undercloud node is {{ ansible_memtotal_mb }} MB, the minimal recommended value is {{ minimum_ram_gb|int * 1024 }} MB."
+    failed_when: "({{ ansible_memtotal_mb }}) < {{ minimum_ram_gb|int * 1024 }}"
+```
