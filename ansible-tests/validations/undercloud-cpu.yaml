@@ -1,0 +1,15 @@
+---
+- hosts: undercloud
+  vars:
+    metadata:
+      name: CPU core count of the undercloud node
+      description: >
+        Make sure that the undercloud has enough CPU cores.
+      groups:
+        - discovery
+    # https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux_OpenStack_Platform/7/html/Director_Installation_and_Usage/sect-Undercloud_Requirements.html
+    undercloud_core_count: 8
+  tasks:
+  - name: Verify the number of CPU cores
+    fail: msg="There are {{ ansible_processor_vcpus }} cores in the system, but there should be at least {{ undercloud_core_count }}"
+    failed_when: "{{ ansible_processor_vcpus|int }} < {{ undercloud_core_count|int }}"

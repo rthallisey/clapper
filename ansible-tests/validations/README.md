@@ -17,6 +17,7 @@ The validations run on the undercloud.)
 * [Make sure the undercloud drives have 512e support](512e.yaml)
 * [Verify the undercloud has enough disk space for the initial deployment](undercloud-disk-space.yaml)
 * [Verify the undercloud has enough RAM](undercloud-ram.yaml)
+* [Verify the undercloud has enough CPU cores](undercloud-cpu.yaml)
 * [Verify `network_gateway` is set correctly in `undercloud.conf` and is reachable](check-network-gateway.yaml)
 
 ## Pre Deployment ##
