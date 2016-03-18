@@ -1,7 +1,7 @@
 Reference Validator
 ===================
 
-<h1> WARNING: Work in progress, may return invalid results </h1>
+<h1> <font color="red"> WARNING </font>: Work in progress, may return invalid results </h1>
 
 <h2> Requirements </h2>
 
@@ -23,6 +23,6 @@ This script goes through all HOT files associated with root template, taking map
 <li> `-u/--unused` causes printing additional info (unused instances without reference).</li>
 </ul>
 
-<b> Output </b>
+<h2> Output </h2>
 
 Script prints the result to standard output. The result contains a list of all associated files containing invalid references and info about involved instances. Optionally, it also prints a list of all unused instances.
