@@ -90,7 +90,7 @@ class YAML_HotValidator:
 
             self.invalid = []           # list of invalid references (YAML_Reference)
 
-        def validate_file(self, curr_nodes, templates, environments):
+        def validate_file(self, curr_nodes, templates, environments, curr_path):
             ''' Validates YAML file'''
 
             # Add current node at the beginning
@@ -98,7 +98,7 @@ class YAML_HotValidator:
 
             # Open file
             try:
-                with open(self.path, 'r') as fd:
+                with open(os.path.join(curr_path, self.path), 'r') as fd:
                     self.structure = yaml.load(fd.read())
             except IOError:
                 print('File ' + self.path + ' could not be opened.')
@@ -130,7 +130,8 @@ class YAML_HotValidator:
                     resource.child = templates[0]
 
                     # Start validating child
-                    templates[0].validate_file(curr_nodes, templates, environments)
+                    templates[0].validate_file(curr_nodes, templates, environments,
+                                               os.path.join(curr_path, os.path.dirname(self.path)))
 
                     # Whole subtree with root = current node is validated
 
@@ -651,7 +652,7 @@ class YAML_HotValidator:
                                       YAML_colours.YELLOW + os.path.relpath(ref.parent, self.init_dir) + YAML_colours.DEFAULT + '.')
                             else:
                                 print('Parameter ' + ref.referent + ' has no corresponding default or property in' +
-                                ref.element + ' in ' + os.path.relpath(ref.parent.path, self.init_dir) + '.')
+                                ref.element + ' in ' + os.path.relpath(ref.parent, self.init_dir) + '.')
                     print('')
 
                 # Unused parameters (optional) ??
@@ -756,15 +757,17 @@ def main():
     # All mappings are at the beginning, followed by children nodes
     for hot in list(reversed(validator.mappings)):
         if hot.parent in validator.environments:
-            os.chdir(os.path.dirname(hot.parent.path))
-            hot.validate_file(validator.curr_nodes, validator.mappings, validator.environments)
+            hot.validate_file(validator.curr_nodes, validator.mappings,
+                              validator.environments, os.path.join(validator.init_dir,
+                              os.path.dirname(hot.parent.path)))
         else:
             break
 
     # Validate HOTs: change to its directory, validate -f
-    os.chdir(os.path.dirname(validator.templates[0].path))
     validator.templates[0].validate_file(validator.curr_nodes, validator.templates,
-                                         validator.environments)
+                                         validator.environments,
+                                         os.path.join(validator.init_dir,
+                                         os.path.dirname(validator.templates[0].path)))
 
     # Also add mapped files as children once there is a full structure of files
     validator.load_mappings()
