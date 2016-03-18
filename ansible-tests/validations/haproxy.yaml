@@ -4,6 +4,8 @@
     metadata:
       name: HAProxy configuration
       description: todo
+      groups:
+        - post-deployment
     config_file: '/etc/haproxy/haproxy.cfg'
     global_maxconn_min: 20480
     defaults_maxconn_min: 4096

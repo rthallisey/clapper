@@ -6,6 +6,8 @@
       description: >
         Run `neutron-sanity-check` to find out potential issues with
         Neutron's configuration.
+      groups:
+        - post-deployment
   tasks:
   - name: Run neutron-sanity-check
     command: neutron-sanity-check --config-file /etc/neutron/neutron.conf
