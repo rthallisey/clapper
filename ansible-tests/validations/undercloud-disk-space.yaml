@@ -7,14 +7,12 @@
         Make sure that the root partition on the undercloud node is large enough.
       groups:
         - discovery
-    # NOTE(shadower): This is slightly lower than the size of the
-    # Instack VM in the virt environment. I'm assuming that's a good
-    # aproximation of "large enough". We may need to tweak this later.
-    minimum_disk_space_gb: 27
+    # https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux_OpenStack_Platform/7/html/Director_Installation_and_Usage/sect-Undercloud_Requirements.html
+    minimum_disk_space_gb: 40
   tasks:
-  - name: Get root disk space
-    debug: msg="The disk space on the root partition is {{ item.size_total }}B"
+  - name: Verify root disk space
+    # NOTE(shadower): 1073741824 == (1024 * 1024 * 1024), i.e. byte to gigabyte ratio
+    fail: msg="The available space on the root partition is {{ item.size_available|int / 1073741824 }} GB, but it should be at least {{ minimum_disk_space_gb }} GB."
     with_items: "{{ ansible_mounts }}"
     when: "'/' == '{{ item.mount }}'"  # We only care about root
-    # NOTE(shadower): 1073741824 == (1024 * 1024 * 1024), i.e. convert GB to bytes
-    failed_when: "({{ minimum_disk_space_gb }} * 1073741824) >= {{ item.size_total }}"
+    failed_when: "{{ minimum_disk_space_gb|int * 1073741824 }} >= {{ item.size_available|int }}"
