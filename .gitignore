@@ -3,3 +3,4 @@ hosts
 .venv
 env_vars.json
 .tox
+*.retry
