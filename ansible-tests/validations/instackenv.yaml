@@ -1,0 +1,19 @@
+---
+- hosts: undercloud
+  vars:
+    metadata:
+      name: Validate the instackenv.json file used to register baremetal nodes
+      description: >
+        The instackenv.json file contains the list of nodes we want to
+        register with Ironic.
+
+        This validation verifies that it is a valid json file, that
+        all the MAC and IPMI addresses are unique and in case the
+        `ipmitool` is available, tries to connect to each node.
+      groups:
+      - discovery
+    instackenv_file_path: /home/stack/instackenv.json
+  tasks:
+  - name: Validate instackenv.json
+    validate_instackenv:
+      path: "{{ instackenv_file_path }}"
