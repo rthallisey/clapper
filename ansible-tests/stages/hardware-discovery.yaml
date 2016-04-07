@@ -10,5 +10,6 @@
 - include: ../validations/undercloud-ram.yaml
 - include: ../validations/undercloud-cpu.yaml
 - include: ../validations/512e.yaml
+- include: ../validations/network_environment.yaml
 - include: ../validations/check-network-gateway.yaml
 - include: ../validations/instackenv.yaml

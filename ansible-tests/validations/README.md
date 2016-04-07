@@ -15,6 +15,7 @@ the deployment stage they're should be run on.
 The validations run on the undercloud.)
 
 * [Make sure the undercloud drives have 512e support](512e.yaml)
+* [Validate the Heat network environment files](network_environment.yaml)
 * [Verify the undercloud has enough disk space for the initial deployment](undercloud-disk-space.yaml)
 * [Verify the undercloud has enough RAM](undercloud-ram.yaml)
 * [Verify the undercloud has enough CPU cores](undercloud-cpu.yaml)
