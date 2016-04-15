@@ -50,6 +50,11 @@ try:
 except ImportError:
     print('keystoneclient is required', file=sys.stderr)
     sys.exit(1)
+try:
+    from novaclient import client as nova_client
+except ImportError:
+    print('novaclient is required', file=sys.stderr)
+    sys.exit(1)
 
 
 def _parse_config():
@@ -87,9 +92,11 @@ class TripleoInventory(object):
         self.configs = configs
         self._ksclient = None
         self._hclient = None
+        self._nclient = None
 
     def fetch_stack_resources(self, stack, resource_name):
         heatclient = self.hclient
+        novaclient = self.nclient
         ret = []
         try:
             resource_id = heatclient.resources.get(stack, resource_name) \
@@ -97,8 +104,10 @@ class TripleoInventory(object):
             for resource in heatclient.resources.list(resource_id):
                 node = heatclient.resources.get(resource_id,
                                                 resource.resource_name)
-                node_address = node.attributes['tenant_ip_address']
-                ret.append(node_address)
+                node_resource = node.attributes['nova_server_resource']
+                nova_server = novaclient.servers.get(node_resource)
+                if nova_server.status == 'ACTIVE':
+                    ret.append(nova_server.networks['ctlplane'][0])
         except Exception:
             # Ignore non existent stacks or resources
             pass
@@ -168,6 +177,23 @@ class TripleoInventory(object):
                       file=sys.stderr)
                 sys.exit(1)
         return self._hclient
+
+    @property
+    def nclient(self):
+        if self._nclient is None:
+            ksclient = self.ksclient
+            endpoint = ksclient.service_catalog.url_for(
+                service_type='compute', endpoint_type='publicURL')
+            try:
+                self._nclient = nova_client.Client(
+                    '2',
+                    bypass_url=endpoint,
+                    auth_token=ksclient.auth_token)
+            except Exception as e:
+                print("Error connecting to Nova: {}".format(e.message),
+                      file=sys.stderr)
+                sys.exit(1)
+        return self._nclient
 
 
 def main():
