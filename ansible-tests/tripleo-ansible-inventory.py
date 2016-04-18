@@ -113,6 +113,17 @@ class TripleoInventory(object):
             pass
         return ret
 
+
+    def get_overcloud_output(self, output_name):
+        try:
+            stack = self.hclient.stacks.get('overcloud')
+            for output in stack.outputs:
+                if output['output_key'] == output_name:
+                    return output['output_value']
+        except Exception:
+            return None
+
+
     def list(self):
         ret = {
             'undercloud': {
@@ -122,6 +133,11 @@ class TripleoInventory(object):
                 },
             }
         }
+
+        public_vip = self.get_overcloud_output('PublicVip')
+        if public_vip:
+            ret['undercloud']['vars']['public_vip'] = public_vip
+
         controller_group = self.fetch_stack_resources('overcloud',
                                                       'Controller')
         if controller_group:

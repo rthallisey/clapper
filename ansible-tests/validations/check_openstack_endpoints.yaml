@@ -1,0 +1,34 @@
+---
+- hosts: undercloud
+  vars:
+    metadata:
+      name: Check access to various openstack services
+      description: >
+        This will attempt to connect to each service endpoint defined in
+        your hosts file's controller_vip variable.
+      groups:
+      - post-deployment
+  tasks:
+  - name: Load the overcloud credentials
+    overcloudrc: path=/home/stack/overcloudrc
+
+  # Check connectivity to horizon
+  - name: Check Horizon
+    # TODO: get Horizon endpoint from Keystone
+    uri: url=http://{{public_vip}}
+
+  # Check that we can obtain an auth token from horizon
+  - name: Check Keystone
+    uri:
+      url: "{{ overcloudrc.OS_AUTH_URL }}/tokens"
+      method: POST
+      headers:
+        "Content-Type": "application/json"
+      # NOTE(shadower): this is a workaround for a bug in Ansible 1.9. When
+      # we switch to 2.x only, we can replace this with a yaml dict.
+      # Yes. The space character at the beginning is apparently necessary here.
+      body: ' {"auth": {"passwordCredentials": {"username": "{{ overcloudrc.OS_USERNAME }}", "password": "{{ overcloudrc.OS_PASSWORD }}"}, "tenantName": "{{ overcloudrc.OS_TENANT_NAME }}"} }'
+      return_content: yes
+    register: auth_token
+
+  # TODO: other endpoints

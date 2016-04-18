@@ -3,6 +3,9 @@
 [undercloud]
 undercloud.example.com
 
+[undercloud:vars]
+#controller_vip=
+
 [overcloud:children]
 controller
 compute
