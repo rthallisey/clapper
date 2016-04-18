@@ -21,6 +21,7 @@ def validate(netenv_path):
     vlaninfo = {}
     routeinfo = {}
     bondinfo = {}
+    staticipinfo = {}
 
     for name, relative_path in six.iteritems(network_data.get('resource_registry', {})):
         if name.endswith("Net::SoftwareConfig"):
@@ -36,6 +37,8 @@ def validate(netenv_path):
             poolsinfo[item] = data
         elif item.endswith('NetworkVlanID'):
             vlaninfo[item] = data
+        elif item.endswith('IPs'):
+            staticipinfo[item] = data
         elif item == 'ExternalInterfaceDefaultRoute':
             routeinfo = data
         elif item == 'BondInterfaceOvsOptions':
@@ -45,6 +48,7 @@ def validate(netenv_path):
     errors.extend(
         check_allocation_pools_pairing(
             network_data.get('parameter_defaults', {}), poolsinfo))
+    errors.extend(check_static_ip_pool_collision(staticipinfo, poolsinfo))
     errors.extend(check_vlan_ids(vlaninfo))
 
     return errors
@@ -133,6 +137,54 @@ def check_allocation_pools_pairing(filedata, pools):
                                                   subnet_obj))
                     break
     return errors
+
+
+def check_static_ip_pool_collision(static_ips, pools):
+    """Statically defined IP address must not conflict with allocation pools.
+
+    The allocation pools come as a dict of items in the following format:
+
+    InternalApiAllocationPools: [{'start': '10.35.191.150', 'end': '10.35.191.240'}]
+
+    The static IP addresses are dicts of:
+
+    ComputeIPs: {
+        'internal_api': ['10.35.191.100', etc.],
+        'storage': ['192.168.100.45', etc.]
+    }
+    """
+    errors = []
+
+    pool_ranges = []
+    for pool_name, ranges in six.iteritems(pools):
+        for allocation_range in ranges:
+            ip_range = netaddr.IPRange(allocation_range['start'],
+                                allocation_range['end'])
+            pool_ranges.append((pool_name, ip_range))
+    for role, services in six.iteritems(static_ips):
+        for service, ips in six.iteritems(services):
+            for ip in ips:
+                ranges_with_conflict = ranges_conflicting_with_ip(
+                    ip, pool_ranges)
+                if ranges_with_conflict:
+                    for pool_name, ip_range in ranges_with_conflict:
+                        msg = "IP address {} from {}[{}] is in the {} pool."
+                        errors.append(msg.format(
+                            ip, role, service, pool_name))
+    return errors
+
+
+def ranges_conflicting_with_ip(ip_address, ip_ranges):
+    """Check for all conflicts of the IP address conflicts.
+
+    This takes a single IP address and a list of `(pool_name,
+    netenv.IPRange)`s.
+
+    We return all ranges that the IP address conflicts with. This is to
+    improve the final error messages.
+    """
+    return [(pool_name, ip_range) for (pool_name, ip_range) in ip_ranges
+            if ip_address in ip_range]
 
 
 def check_vlan_ids(vlans):

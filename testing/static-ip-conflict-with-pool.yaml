@@ -1,0 +1,80 @@
+# Environment file demonstrating how to pre-assign IPs to all node types
+resource_registry:
+  OS::TripleO::Controller::Ports::ExternalPort: ../network/ports/external_from_pool.yaml
+  OS::TripleO::Controller::Ports::InternalApiPort: ../network/ports/internal_api_from_pool.yaml
+  OS::TripleO::Controller::Ports::StoragePort: ../network/ports/storage_from_pool.yaml
+  OS::TripleO::Controller::Ports::StorageMgmtPort: ../network/ports/storage_mgmt_from_pool.yaml
+  OS::TripleO::Controller::Ports::TenantPort: ../network/ports/tenant_from_pool.yaml
+
+  OS::TripleO::Compute::Ports::ExternalPort: ../network/ports/noop.yaml
+  OS::TripleO::Compute::Ports::InternalApiPort: ../network/ports/internal_api_from_pool.yaml
+  OS::TripleO::Compute::Ports::StoragePort: ../network/ports/storage_from_pool.yaml
+  OS::TripleO::Compute::Ports::StorageMgmtPort: ../network/ports/noop.yaml
+  OS::TripleO::Compute::Ports::TenantPort: ../network/ports/tenant_from_pool.yaml
+
+  OS::TripleO::CephStorage::Ports::ExternalPort: ../network/ports/noop.yaml
+  OS::TripleO::CephStorage::Ports::InternalApiPort: ../network/ports/noop.yaml
+  OS::TripleO::CephStorage::Ports::StoragePort: ../network/ports/storage_from_pool.yaml
+  OS::TripleO::CephStorage::Ports::StorageMgmtPort: ../network/ports/storage_mgmt_from_pool.yaml
+  OS::TripleO::CephStorage::Ports::TenantPort: ../network/ports/noop.yaml
+
+  OS::TripleO::SwiftStorage::Ports::ExternalPort: ../network/ports/noop.yaml
+  OS::TripleO::SwiftStorage::Ports::InternalApiPort: ../network/ports/internal_api_from_pool.yaml
+  OS::TripleO::SwiftStorage::Ports::StoragePort: ../network/ports/storage_from_pool.yaml
+  OS::TripleO::SwiftStorage::Ports::StorageMgmtPort: ../network/ports/storage_mgmt_from_pool.yaml
+  OS::TripleO::SwiftStorage::Ports::TenantPort: ../network/ports/noop.yaml
+
+  OS::TripleO::BlockStorage::Ports::ExternalPort: ../network/ports/noop.yaml
+  OS::TripleO::BlockStorage::Ports::InternalApiPort: ../network/ports/internal_api_from_pool.yaml
+  OS::TripleO::BlockStorage::Ports::StoragePort: ../network/ports/storage_from_pool.yaml
+  OS::TripleO::BlockStorage::Ports::StorageMgmtPort: ../network/ports/storage_mgmt_from_pool.yaml
+  OS::TripleO::BlockStorage::Ports::TenantPort: ../network/ports/noop.yaml
+
+parameter_defaults:
+  InternalApiNetCidr: 10.35.191.0/24
+  StorageNetCidr: 192.168.100.0/24
+  StorageMgmtNetCidr: 192.168.150.0/24
+  ExternalNetCidr: 10.35.190.0/24
+
+  InternalApiAllocationPools: [{'start': '10.35.191.150', 'end': '10.35.191.240'}]
+  StorageAllocationPools: [{'start': '192.168.100.100', 'end': '192.168.100.240'}]
+  StorageMgmtAllocationPools: [{'start': '192.168.150.100', 'end': '192.168.150.240'}]
+  ExternalAllocationPools: [{'start': '10.35.190.180', 'end': '10.35.190.200'}]
+
+  ControllerIPs:
+    internal_api:
+    - 10.35.191.150  # conflicts with the range in the pool
+    - 10.35.191.60
+    - 10.35.191.70
+    storage:
+    - 192.168.100.20
+    - 192.168.100.30
+    - 192.168.100.40
+    storage_mgmt:
+    - 192.168.150.20
+    - 192.168.150.30
+    - 192.168.150.40
+    external:
+    - 10.35.190.210
+    - 10.35.190.211
+    - 10.35.190.212
+
+  ComputeIPs:
+    internal_api:
+    - 10.35.191.100
+    - 10.35.191.110
+    - 10.35.191.120
+    storage:
+    - 192.168.100.125  # conflicts with the range in the pool
+    - 192.168.100.135  # conflicts with the range in the pool
+    - 192.168.100.45
+
+  CephStorageIPs:
+    storage:
+    - 192.168.100.70
+    - 192.168.100.80
+    - 192.168.100.90
+    storage_mgmt:
+    - 192.168.150.80
+    - 192.168.150.90
+    - 192.168.150.99
