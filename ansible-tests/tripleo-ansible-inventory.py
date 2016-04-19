@@ -27,6 +27,7 @@ from __future__ import print_function
 import json
 import os
 import sys
+import subprocess
 
 from oslo_config import cfg
 
@@ -93,6 +94,7 @@ class TripleoInventory(object):
         self._ksclient = None
         self._hclient = None
         self._nclient = None
+	self.stack_name = self.get_stack_name()
 
     def fetch_stack_resources(self, stack, resource_name):
         heatclient = self.hclient
@@ -116,7 +118,7 @@ class TripleoInventory(object):
 
     def get_overcloud_output(self, output_name):
         try:
-            stack = self.hclient.stacks.get('overcloud')
+            stack = self.hclient.stacks.get(self.stack_name)
             for output in stack.outputs:
                 if output['output_key'] == output_name:
                     return output['output_value']
@@ -138,17 +140,16 @@ class TripleoInventory(object):
         if public_vip:
             ret['undercloud']['vars']['public_vip'] = public_vip
 
-        controller_group = self.fetch_stack_resources('overcloud',
-                                                      'Controller')
+        controller_group = self.fetch_stack_resources(self.stack_name,'Controller')
         if controller_group:
             ret['controller'] = controller_group
 
-        compute_group = self.fetch_stack_resources('overcloud', 'Compute')
+        compute_group = self.fetch_stack_resources(self.stack_name, 'Compute')
         if compute_group:
             ret['compute'] = compute_group
 
         if any([controller_group, compute_group]):
-            ret['overcloud'] = {
+            ret[self.stack_name] = {
                 'children': list(set(ret.keys()) - set(['undercloud'])),
                 'vars': {
                     'ansible_ssh_user': 'heat-admin',
@@ -210,7 +211,10 @@ class TripleoInventory(object):
                       file=sys.stderr)
                 sys.exit(1)
         return self._nclient
-
+     
+    def get_stack_name(self):
+        return subprocess.check_output("heat stack-list | grep CREATE",
+                                       shell=True).split("|")[2].strip()
 
 def main():
     configs = _parse_config()
