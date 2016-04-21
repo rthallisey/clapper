@@ -10,3 +10,4 @@
 - include: ../validations/neutron-sanity-check.yaml
 - include: ../validations/mysql-open-files-limit.yaml
 - include: ../validations/check-openstack-endpoints.yaml
+- include: ../validations/no-op-firewall-nova-driver.yaml

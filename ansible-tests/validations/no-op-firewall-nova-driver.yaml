@@ -6,6 +6,8 @@
       description: >
         When using Neutron, the `firewall_driver` option in Nova must be set to
         `NoopFirewallDriver`.
+      groups:
+        - post-deployment
   tasks:
   - name: Verify the `firewall_driver` value
     # TODO(shadower): if/when we have more validations that read a value from an
