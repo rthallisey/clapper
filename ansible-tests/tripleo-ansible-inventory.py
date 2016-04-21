@@ -94,7 +94,7 @@ class TripleoInventory(object):
         self._ksclient = None
         self._hclient = None
         self._nclient = None
-	self.stack_name = self.get_stack_name()
+        self.stack_name = self.get_stack_name()
 
     def fetch_stack_resources(self, stack, resource_name):
         heatclient = self.hclient
@@ -115,7 +115,6 @@ class TripleoInventory(object):
             pass
         return ret
 
-
     def get_overcloud_output(self, output_name):
         try:
             stack = self.hclient.stacks.get(self.stack_name)
@@ -124,7 +123,6 @@ class TripleoInventory(object):
                     return output['output_value']
         except Exception:
             return None
-
 
     def list(self):
         ret = {
@@ -140,11 +138,13 @@ class TripleoInventory(object):
         if public_vip:
             ret['undercloud']['vars']['public_vip'] = public_vip
 
-        controller_group = self.fetch_stack_resources(self.stack_name,'Controller')
+        controller_group = self.fetch_stack_resources(self.stack_name,
+                                                      'Controller')
         if controller_group:
             ret['controller'] = controller_group
 
-        compute_group = self.fetch_stack_resources(self.stack_name, 'Compute')
+        compute_group = self.fetch_stack_resources(self.stack_name,
+                                                   'Compute')
         if compute_group:
             ret['compute'] = compute_group
 
@@ -211,10 +211,17 @@ class TripleoInventory(object):
                       file=sys.stderr)
                 sys.exit(1)
         return self._nclient
-     
+
     def get_stack_name(self):
-        return subprocess.check_output("heat stack-list | grep CREATE",
-                                       shell=True).split("|")[2].strip()
+        try:
+            for stack in self.hclient.stacks.list():
+                if 'CREATE' in stack.stack_status:
+                    return stack.stack_name
+        except Exception as e:
+            print("Unable to retreive overcloud stack ".format(e.message),
+                  file=sys.stderr)
+            sys.exit(1)
+
 
 def main():
     configs = _parse_config()
