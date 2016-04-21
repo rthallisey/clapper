@@ -27,7 +27,6 @@ from __future__ import print_function
 import json
 import os
 import sys
-import subprocess
 
 from oslo_config import cfg
 
