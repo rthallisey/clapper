@@ -2,9 +2,9 @@
 - hosts: overcloud
   vars:
     metadata:
-      name: Hardware Discovery
-      description: Validations that run after the hardware was discovered.
-      stage: discovery
+      name: Pre-deployment
+      description: Validations that run before any deployment
+      stage: pre-deployment
 - include: ../validations/discovery_diff.yaml
 - include: ../validations/undercloud-disk-space.yaml
 - include: ../validations/undercloud-ram.yaml
@@ -13,3 +13,4 @@
 - include: ../validations/network_environment.yaml
 - include: ../validations/check-network-gateway.yaml
 - include: ../validations/instackenv.yaml
+- include: ../validations/rogue-dhcp.yaml

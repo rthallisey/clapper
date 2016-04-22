@@ -12,7 +12,7 @@
 
         http://tripleo.org/advanced_deployment/network_isolation.html
       groups:
-      - discovery
+        - pre-deployment
     network_environment_path: /home/stack/network-environment.yaml
   tasks:
   - name: Validate the network environment files
