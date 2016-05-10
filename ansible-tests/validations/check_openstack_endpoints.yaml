@@ -22,12 +22,13 @@
     uri:
       url: "{{ overcloudrc.OS_AUTH_URL }}/tokens"
       method: POST
-      headers:
-        "Content-Type": "application/json"
-      # NOTE(shadower): this is a workaround for a bug in Ansible 1.9. When
-      # we switch to 2.x only, we can replace this with a yaml dict.
-      # Yes. The space character at the beginning is apparently necessary here.
-      body: ' {"auth": {"passwordCredentials": {"username": "{{ overcloudrc.OS_USERNAME }}", "password": "{{ overcloudrc.OS_PASSWORD }}"}, "tenantName": "{{ overcloudrc.OS_TENANT_NAME }}"} }'
+      body_format: json
+      body:
+        auth:
+          passwordCredentials:
+            username: "{{ overcloudrc.OS_USERNAME }}"
+            password: "{{ overcloudrc.OS_PASSWORD }}"
+          tenantName: "{{ overcloudrc.OS_TENANT_NAME }}"
       return_content: yes
     register: auth_token
 
