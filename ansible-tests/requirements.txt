@@ -1,4 +1,4 @@
-ansible==1.9.4
+ansible>=2.0
 Babel==2.2.0
 debtcollector==1.2.0
 ecdsa==0.13
@@ -6,6 +6,7 @@ Flask==0.10.1
 Flask-Cors==2.1.2
 funcsigs==0.4
 futures==3.0.3
+ipaddress==1.0.16
 iso8601==0.1.11
 itsdangerous==0.24
 Jinja2==2.8
