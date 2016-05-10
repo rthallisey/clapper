@@ -16,20 +16,16 @@ us use these from the TripleO web UI and command line clients.
 For now, you need to run them manually. All the validations live in
 the [ansible-tests/validations](ansible-tests/validations) directory.
 
+**NOTE** We only support Ansible 2.0 and higher.
+
 To run a validation you need to:
 
     $ git clone https://github.com/rthallisey/clapper.git
     $ source ~/stackrc
     $ cd clapper/ansible-tests
     $ ls validations  # pick a validation to run
-    $ ansible-playbook -v -i tripleo-ansible-inventory.py validations/some_validation.yaml
+    $ ansible-playbook -i tripleo-ansible-inventory.py validations/some_validation.yaml
 
-NOTE: some validations only produce useful output when run with a
-higher verbosity (the `-v` switch). You should check it even when the
-validations are passing.
-
-When we integrate with TripleO via an API, these results will be
-reported in a more visible manner (e.g. show up as warnings).
 
 
 ### Contributing validations or ideas
