@@ -18,10 +18,7 @@ mistral_executor running with:
 
 You also need to have ansible installed on the undercloud:
 
-    $ sudo pip install 'ansible<2'
-
-The validation playbooks have only been tested with ansible 1.9.4 at the
-moment.
+    $ sudo pip install 'ansible>=2'
 
 Finaly, make sure `sudo` can run without the need for a tty. In `/etc/sudoers`
 comment out the line "Defaults requiretty" if it's set.
