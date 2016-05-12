@@ -6,6 +6,10 @@
       description: This test provides difference in configuration based on data collected in ironic-inspector
       groups:
         - pre-deployment
+    undercloud_conf_path: ~/undercloud-passwords.conf
   tasks:
   - name: Run the Discovery diff
     discovery_diff:
+      os_tenant_name: service
+      os_username: ironic
+      os_password: "{{ lookup('ini', 'undercloud_ironic_password section=auth file={{ undercloud_conf_path }}') }}"
