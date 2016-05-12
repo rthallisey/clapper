@@ -52,17 +52,21 @@ def main():
         module.exit_json(changed=False, msg='No networks were specified.')
 
     dhcp_servers = find_dhcp_servers(module.params.get('timeout_seconds'))
+    warnings = []
+    msg = "No DHCP servers found."
+    changed = False
     if dhcp_servers:
+        msg = 'Found %d DHCP servers.' % len(dhcp_servers)
+        changed = True
+        warnings.append(msg)
         formatted_servers = ("%s (%s)" % (ip, mac) for (ip, mac) in dhcp_servers)
         # TODO: write out the networks when we actually use them for anything:
-        results = "DHCP servers: %s" % ','.join(formatted_servers)
-    else:
-        results = ""
+        warnings.extend(formatted_servers)
 
     result = {
-        'changed': True,
-        'msg': 'Found %d DHCP servers.' % len(dhcp_servers),
-        'results': results,
+        'changed': changed,
+        'msg': msg,
+        'warnings': warnings,
     }
     module.exit_json(**result)
 
