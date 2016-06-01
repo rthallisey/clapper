@@ -22,6 +22,7 @@ The validations run on the undercloud.)
 * [Verify the undercloud doesn't run too many processes](undercloud-process-count.yaml)
 * [Verify `network_gateway` is set correctly in `undercloud.conf` and is reachable](check-network-gateway.yaml)
 * [Validate the instackenv.json file contents](instackenv.yaml)
+* [Check the number of IP addresses for the overcloud nodes](ctlplane-ip-range.yaml)
 
 ## Pre Deployment ##
 

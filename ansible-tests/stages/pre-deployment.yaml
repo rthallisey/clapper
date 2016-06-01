@@ -15,3 +15,4 @@
 - include: ../validations/check-network-gateway.yaml
 - include: ../validations/instackenv.yaml
 - include: ../validations/rogue-dhcp.yaml
+- include: ../validations/ctlplane-ip-range.yaml
