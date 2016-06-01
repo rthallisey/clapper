@@ -11,3 +11,4 @@
 - include: ../validations/mysql-open-files-limit.yaml
 - include: ../validations/check_openstack_endpoints.yaml
 - include: ../validations/no-op-firewall-nova-driver.yaml
+- include: ../validations/ntpstat.yaml
