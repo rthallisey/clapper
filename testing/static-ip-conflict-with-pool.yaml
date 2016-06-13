@@ -73,8 +73,8 @@ parameter_defaults:
     storage:
     - 192.168.100.70
     - 192.168.100.80
-    - 192.168.100.90
+    - 192.168.113.90   # ERROR: it's outside of StorageNetCidr (192.168.100.0/24)
     storage_mgmt:
-    - 192.168.150.80
+    - 192.168.150.20   # ERROR: duplicate of ControllerIPs.storage_mgmt
     - 192.168.150.90
-    - 192.168.150.99
+    - 10.35.191.120    # ERROR: duplicate of ComputeIPs.internal_api; outside of CIDR
