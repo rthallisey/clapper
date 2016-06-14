@@ -34,6 +34,14 @@ def command_results(**args):
                      detail['changed'],
                      detail['unreachable'],
                      detail['failures'])
+                if 'warning_messages' in detail:
+                    print '\tWarnings:'
+                    for warning in detail['warning_messages']:
+                        print '\t* ', warning
+                if 'failure_messages' in detail:
+                    print '\tFailures:'
+                    for failure in detail['failure_messages']:
+                        print '\t* ', failure
 
 
 def command_run(*args):
