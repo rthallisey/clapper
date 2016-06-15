@@ -50,6 +50,7 @@ def validate(netenv_path):
             network_data.get('parameter_defaults', {}), poolsinfo))
     errors.extend(check_static_ip_pool_collision(staticipinfo, poolsinfo))
     errors.extend(check_vlan_ids(vlaninfo))
+    errors.extend(check_static_ip_in_cidr(cidrinfo, staticipinfo))
 
     return errors
 
@@ -196,6 +197,37 @@ def check_vlan_ids(vlans):
         else:
             errors.append('Vlan ID {} ({}) already exists in {}'.format(
                 v, k, invertdict[v]))
+    return errors
+
+
+def check_static_ip_in_cidr(networks, static_ips):
+    '''
+    Verify that all the static IP addresses are from the corresponding network
+    range.
+    '''
+    errors = []
+    network_ranges = {}
+    # TODO(shadower): Refactor this so networks are always valid and already
+    # converted to `netaddr.IPNetwork` here. Will be useful in the other checks.
+    for name, cidr in six.iteritems(networks):
+        try:
+            network_ranges[name] = netaddr.IPNetwork(cidr)
+        except ValueError:
+            errors.append("Network '{}' has an invalid CIDR: '{}'"
+                          .format(name, cidr))
+    for role, services in six.iteritems(static_ips):
+        for service, ips in six.iteritems(services):
+            range_name = service.title().replace('_', '') + 'NetCidr'
+            if range_name in network_ranges:
+                for ip in ips:
+                    if ip not in network_ranges[range_name]:
+                        errors.append(
+                            "The IP address {} is outside of the {} range: {}"
+                            .format(ip, range_name, networks[range_name]))
+            else:
+                errors.append(
+                    "Service '{}' does not have a "
+                    "corresponding range: '{}'.".format(service, range_name))
     return errors
 
 
