@@ -62,6 +62,7 @@ parameter_defaults:
   ComputeIPs:
     internal_api:
     - 10.35.191.100
+    - 10.35.191.100    # ERROR: Duplicate with the line above
     - 10.35.191.110
     - 10.35.191.120
     storage:
@@ -77,4 +78,4 @@ parameter_defaults:
     storage_mgmt:
     - 192.168.150.20   # ERROR: duplicate of ControllerIPs.storage_mgmt
     - 192.168.150.90
-    - 10.35.191.120    # ERROR: duplicate of ComputeIPs.internal_api; outside of CIDR
+    - 10.35.191.120    # 2 ERRORS: duplicate of ComputeIPs.internal_api and outside of CIDR
