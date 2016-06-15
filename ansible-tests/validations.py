@@ -140,12 +140,42 @@ class SilentPlaybookCallbacks(object):
     def on_stats(self, stats):
         callbacks.call_callback_module('playbook_on_stats', stats)
 
+class CustomRunnerHandler(callbacks.PlaybookRunnerCallbacks):
+    def __init__(self, stats=None):
+        super(CustomRunnerHandler, self).__init__(stats=stats)
+        self._captured_results = {}
+
+    def on_ok(self, host, host_result):
+        if ('invocation' in host_result and
+            host_result['invocation'].get('module_name') == 'setup'):
+            # The Setup module contains too much info, so ignore it
+            return
+        if not host in self._captured_results:
+            self._captured_results[host] = []
+        self._captured_results[host].append(host_result)
+
+    def on_failed(self, host, results, ignore_errors=False):
+        if not host in self._captured_results:
+            self._captured_results[host] = []
+        self._captured_results[host].append(results)
+
+    def on_unreachable(self, host, results):
+        if not host in self._captured_results:
+            self._captured_results[host] = []
+        self._captured_results[host].append(results)
+
+    def on_skipped(self, host, item=None):
+        pass
+
+    def captured_results(self):
+        return self._captured_results
+
 
 def run(validation, cancel_event):
     C.HOST_KEY_CHECKING = False
     stats = callbacks.AggregateStats()
     playbook_callbacks = SilentPlaybookCallbacks(cancel_event)
-    runner_callbacks = callbacks.DefaultRunnerCallbacks()
+    runner_callbacks = CustomRunnerHandler()
     playbook = ansible.playbook.PlayBook(
         playbook=validation['playbook'],
         host_list='tripleo-ansible-inventory.py',
@@ -162,6 +192,18 @@ def run(validation, cancel_event):
                 'unreachable': 0,
                 'description': "Validation was cancelled.",
             }
+
+    for host, captures in runner_callbacks.captured_results().items():
+        result[host]['raw'] = captures
+        result[host]['failure_messages'] = []
+        result[host]['warning_messages'] = []
+        for capture in captures:
+            if capture.get('failed'):
+                result[host]['failure_messages'].append(
+                    capture.get('msg', 'Unknown failure'))
+            warnings = capture.get('warnings', [])
+            for warning in warnings:
+                result[host]['warning_messages'].append(warning)
 
     for host, status in result.items():
         success = status['failures'] == 0 and status['unreachable'] == 0
