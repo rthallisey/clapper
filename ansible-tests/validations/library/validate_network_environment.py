@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import collections
 import itertools
 import netaddr
 import os.path
@@ -51,6 +52,7 @@ def validate(netenv_path):
     errors.extend(check_static_ip_pool_collision(staticipinfo, poolsinfo))
     errors.extend(check_vlan_ids(vlaninfo))
     errors.extend(check_static_ip_in_cidr(cidrinfo, staticipinfo))
+    errors.extend(duplicate_static_ips(staticipinfo))
 
     return errors
 
@@ -228,6 +230,23 @@ def check_static_ip_in_cidr(networks, static_ips):
                 errors.append(
                     "Service '{}' does not have a "
                     "corresponding range: '{}'.".format(service, range_name))
+    return errors
+
+
+def duplicate_static_ips(static_ips):
+    errors = []
+    ipset = collections.defaultdict(list)
+    # TODO(shadower): we're doing this netsted loop multiple times. Turn it
+    # into a generator or something.
+    for role, services in six.iteritems(static_ips):
+        for service, ips in six.iteritems(services):
+            for ip in ips:
+                ipset[ip].append((role, service))
+    for ip, sources in six.iteritems(ipset):
+        if len(sources) > 1:
+            msg = "The {} IP address was entered multiple times: {}."
+            formatted_sources = ("{}[{}]".format(*source) for source in sources)
+            errors.append(msg.format(ip, ", ".join(formatted_sources)))
     return errors
 
 
