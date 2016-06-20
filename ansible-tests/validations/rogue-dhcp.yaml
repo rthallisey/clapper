@@ -7,13 +7,15 @@
       description: Locate rogue DHCP servers on Pacemaker-managed networks
       groups:
         - pre-deployment
-    networks:  # TODO(shadower): read this from the overcloud setup
-    # NOTE(shadower): the values are ignored for now so it's okay they're bogus
-    - 10.10.1.1/24
-    - 10.10.2.1/24
-    - 10.10.3.1/24
   tasks:
-  - name: Install scappy
-    pip: name=scapy state=present
-  - name: Look for a rogue DHCP
-    rogue_dhcp: networks="{{ networks }}" timeout_seconds=60
+  - name: Create a temporary directory for a virtualenv
+    command: mktemp -d -t venv-XXXXX
+    register: virtualenv
+  - name: Install scapy
+    pip: name=scapy state=present virtualenv={{ virtualenv.stdout }}
+  - name: Copy the DHCP script over
+    copy: src=library/rogue_dhcp.py dest={{ virtualenv.stdout }}/bin/
+  - name: Look for rogue DHCP servers
+    command: "{{ virtualenv.stdout }}/bin/python {{ virtualenv.stdout }}/bin/rogue_dhcp.py"
+  - name: Remove the virtualenv
+    file: path={{ virtualenv.stdout }} state=absent
