@@ -201,6 +201,10 @@ def run(validation, cancel_event):
             if capture.get('failed'):
                 result[host]['failure_messages'].append(
                     capture.get('msg', 'Unknown failure'))
+            if capture.get('rc', 0) != 0:
+                msg = "Command '{}' exited with code {}. STDERR: {}".format(
+                        capture.get('cmd'), capture.get('rc'), capture.get('stderr'))
+                result[host]['failure_messages'].append(msg)
             warnings = capture.get('warnings', [])
             for warning in warnings:
                 result[host]['warning_messages'].append(warning)
