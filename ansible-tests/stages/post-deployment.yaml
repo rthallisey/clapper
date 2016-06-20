@@ -12,3 +12,4 @@
 - include: ../validations/check_openstack_endpoints.yaml
 - include: ../validations/no-op-firewall-nova-driver.yaml
 - include: ../validations/ntpstat.yaml
+- include: ../validations/pacemaker-status.yaml
