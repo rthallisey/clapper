@@ -1,5 +1,5 @@
 ---
-- hosts: overcloud
+- hosts: controller
   vars:
     metadata:
       name: Rabbitmq limits
@@ -11,11 +11,9 @@
   tasks:
   - name: Get file_descriptors total_limit
     register: actual_fd_limit
-    shell: "rabbitmqctl report | grep file_descriptors -A4 | grep total_limit"
-    failed_when: "actual_fd_limit.rc != 0"
+    command: "rabbitmqctl eval 'proplists:get_value(max_fds, erlang:system_info(check_io)).'"
+    changed_when: false
   - name: Verify the actual limit exceeds the minimal value
     fail:
-      # TODO(shadower): kinda ugly having the huge regex here. Maybe add a
-      # module that extracts the rabbitmq facts?
-      msg: "{{ actual_fd_limit.stdout|regex_replace('^.*\\{total_limit,([0-9]+)\\}.*$', '\\\\1') }} must be greater than {{ min_fd_limit }}"
-    failed_when: "{{ actual_fd_limit.stdout|regex_replace('^.*\\{total_limit,([0-9]+)\\}.*$', '\\\\1')|int }} < {{ min_fd_limit }}"
+      msg: "{{ actual_fd_limit.stdout }} must be greater than {{ min_fd_limit }}"
+    failed_when: "{{ actual_fd_limit.stdout|int }} < {{ min_fd_limit }}"

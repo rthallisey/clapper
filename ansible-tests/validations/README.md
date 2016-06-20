@@ -19,8 +19,10 @@ The validations run on the undercloud.)
 * [Verify the undercloud has enough disk space for the initial deployment](undercloud-disk-space.yaml)
 * [Verify the undercloud has enough RAM](undercloud-ram.yaml)
 * [Verify the undercloud has enough CPU cores](undercloud-cpu.yaml)
+* [Verify the undercloud doesn't run too many processes](undercloud-process-count.yaml)
 * [Verify `network_gateway` is set correctly in `undercloud.conf` and is reachable](check-network-gateway.yaml)
 * [Validate the instackenv.json file contents](instackenv.yaml)
+* [Check the number of IP addresses for the overcloud nodes](ctlplane-ip-range.yaml)
 
 ## Pre Deployment ##
 
@@ -38,3 +40,4 @@ The validations run on the undercloud.)
 * [Run neutron-sanity-check](neutron-sanity-check.yaml)
 * [Verify MySQL Open Files limit](mysql-open-files-limit.yaml)
 * [Check Horizon and Keystone connectivity](check-openstack-endpoints.yaml)
+* [Verify all hosts have NTP configured and running](ntpstat.yaml)
