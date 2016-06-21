@@ -8,14 +8,7 @@
       groups:
         - pre-deployment
   tasks:
-  - name: Create a temporary directory for a virtualenv
-    command: mktemp -d -t venv-XXXXX
-    register: virtualenv
   - name: Install scapy
-    pip: name=scapy state=present virtualenv={{ virtualenv.stdout }}
-  - name: Copy the DHCP script over
-    copy: src=library/rogue_dhcp.py dest={{ virtualenv.stdout }}/bin/
+    pip: name=scapy state=present virtualenv=/tmp/validations-venv
   - name: Look for rogue DHCP servers
-    command: "{{ virtualenv.stdout }}/bin/python {{ virtualenv.stdout }}/bin/rogue_dhcp.py"
-  - name: Remove the virtualenv
-    file: path={{ virtualenv.stdout }} state=absent
+    script: files/rogue_dhcp.py
