@@ -180,6 +180,7 @@ def run(validation, cancel_event):
         playbook=validation['playbook'],
         host_list='tripleo-ansible-inventory.py',
         stats=stats,
+        forks=1,
         callbacks=playbook_callbacks,
         runner_callbacks=runner_callbacks)
     try:
