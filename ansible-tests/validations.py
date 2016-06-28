@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import collections
 import glob
 from os import path
 
@@ -199,6 +200,8 @@ def run(validation, cancel_event):
         result[host]['failure_messages'] = []
         result[host]['warning_messages'] = []
         for capture in captures:
+            if not isinstance(capture, collections.Mapping):
+                continue
             if capture.get('failed'):
                 result[host]['failure_messages'].append(
                     capture.get('msg', 'Unknown failure'))
