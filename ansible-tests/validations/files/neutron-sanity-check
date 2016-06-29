@@ -1,0 +1,21 @@
+#!/bin/bash
+
+set -eu
+
+ARGS=
+
+for config_file in $1; do
+    if [ -f "$config_file" ]; then
+        ARGS="$ARGS --config-file $config_file"
+    fi
+done
+
+for config_dir in $2; do
+    if [ -d "$config_dir" ]; then
+        ARGS="$ARGS --config-dir $config_dir"
+    fi
+done
+
+set -x
+
+neutron-sanity-check $ARGS
