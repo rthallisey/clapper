@@ -1,5 +1,5 @@
-TripleO Validation API and scripts
-==================================
+TripleO Validations
+===================
 
 
 ## Setup
@@ -19,23 +19,3 @@ TripleO Validation API and scripts
 Verify that the test run and succeeds. You can also run a specific validation with:
 
     $ ansible-playbook -i tripleo-ansible-inventory.py validations/haproxy.yaml
-
-
-## Run the API server
-
-    $ source .venv/bin/activate
-    $ source ~/stackrc
-    $ ./validation-api.py
-
-
-## Notes
-
-The API is available at: http://localhost:5001/
-
-There is no database right now, so all the results are going to be lost when
-you restart the server.
-
-The validations are all in the `validations` directory.
-
-The `test.html` page should contain a small snippen of JavaScript that accesses
-the API using CORS.
