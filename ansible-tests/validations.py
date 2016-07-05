@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import collections
 import glob
 from os import path
 
@@ -180,6 +181,7 @@ def run(validation, cancel_event):
         playbook=validation['playbook'],
         host_list='tripleo-ansible-inventory.py',
         stats=stats,
+        forks=1,
         callbacks=playbook_callbacks,
         runner_callbacks=runner_callbacks)
     try:
@@ -198,9 +200,15 @@ def run(validation, cancel_event):
         result[host]['failure_messages'] = []
         result[host]['warning_messages'] = []
         for capture in captures:
+            if not isinstance(capture, collections.Mapping):
+                continue
             if capture.get('failed'):
                 result[host]['failure_messages'].append(
                     capture.get('msg', 'Unknown failure'))
+            if capture.get('rc', 0) != 0:
+                msg = "Command '{}' exited with code {}. STDERR: {}".format(
+                        capture.get('cmd'), capture.get('rc'), capture.get('stderr'))
+                result[host]['failure_messages'].append(msg)
             warnings = capture.get('warnings', [])
             for warning in warnings:
                 result[host]['warning_messages'].append(warning)
