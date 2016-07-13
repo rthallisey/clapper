@@ -11,10 +11,40 @@ import six
 from ansible.module_utils.basic import *
 
 
-def validate(netenv_path):
-    with open(netenv_path, 'r') as net_file:
-        network_data = yaml.load(net_file)
+def open_network_environment_files(netenv_path):
+    errors = []
+    try:
+        with open(netenv_path, 'r') as net_file:
+            network_data = yaml.load(net_file)
+    except Exception as e:
+        return ({}, {}, ["Can't open network environment file '{}': {}"
+                         .format(netenv_path, e)])
+    nic_configs = []
+    resource_registry = network_data.get('resource_registry', {})
+    for nic_name, relative_path in six.iteritems(resource_registry):
+        if nic_name.endswith("Net::SoftwareConfig"):
+            nic_config_path = os.path.join(os.path.dirname(netenv_path),
+                                           relative_path)
+            try:
+                with open(nic_config_path, 'r') as nic_file:
+                    nic_configs.append(
+                        (nic_name, nic_config_path, yaml.load(nic_file)))
+            except Exception as e:
+                errors.append(
+                    "Can't open the resource '{}' reference file '{}': {}"
+                    .format(nic_name, nic_config_path, e))
 
+    return (network_data, nic_configs, errors)
+
+
+def validate(netenv_path):
+    network_data, nic_configs, errors = open_network_environment_files(
+        netenv_path)
+    errors.extend(validate_network_environment(network_data, nic_configs))
+    return errors
+
+
+def validate_network_environment(network_data, nic_configs):
     errors = []
 
     cidrinfo = {}
@@ -23,13 +53,6 @@ def validate(netenv_path):
     routeinfo = {}
     bondinfo = {}
     staticipinfo = {}
-
-    for name, relative_path in six.iteritems(network_data.get('resource_registry', {})):
-        if name.endswith("Net::SoftwareConfig"):
-            nic_config_path = os.path.join(os.path.dirname(netenv_path),
-                                           relative_path)
-            errors.extend(
-                check_nic_configs(name, nic_config_path))
 
     for item, data in six.iteritems(network_data.get('parameter_defaults', {})):
         if item.endswith('NetCidr'):
@@ -45,6 +68,9 @@ def validate(netenv_path):
         elif item == 'BondInterfaceOvsOptions':
             bondinfo = data
 
+    for nic_config_name, nic_config_path, nic_config in nic_configs:
+        errors.extend(check_nic_configs(nic_config_path, nic_config))
+
     errors.extend(check_cidr_overlap(cidrinfo.values()))
     errors.extend(
         check_allocation_pools_pairing(
@@ -57,32 +83,93 @@ def validate(netenv_path):
     return errors
 
 
-def check_nic_configs(resource, path):
+def check_nic_configs(path, nic_data):
     errors = []
-    nic_data = {}
-    try:
-        with open(path, 'r') as nic_file:
-            nic_data = yaml.load(nic_file)
-    except IOError:
-        errors.append('The resource "{}" reference file does not exist: "{}"'
-                      .format(resource, path))
+
+    if not isinstance(nic_data, collections.Mapping):
+        return ["The nic_data parameter must be a dictionary."]
 
     # Look though every resources bridges and make sure there is only a single
     # bond per bridge and only 1 interface per bridge if there are no bonds.
-    for name, resource in six.iteritems(nic_data.get('resources', {})):
-        bridges = resource['properties']['config']['os_net_config']['network_config']
+    resources = nic_data.get('resources')
+    if not isinstance(resources, collections.Mapping):
+        return ["The nic_data must contain the 'resources' key and it must be "
+                "a dictionary."]
+    for name, resource in six.iteritems(resources):
+        if not isinstance(resource, collections.Mapping):
+            errors.append("'{}' is not a valid resource.".format(name))
+            continue
+        properties = resource.get('properties')
+        if not isinstance(properties, collections.Mapping):
+            errors.append("The '{}' resource must contain 'properties'."
+                          .format(name))
+            continue
+        if 'config' not in properties:
+            continue
+        else:
+            config = properties.get('config')
+            if not isinstance(config, collections.Mapping):
+                errors.append(
+                    "The 'config' property of '{}' must be a dictionary."
+                    .format(name))
+                continue
+        if 'os_net_config' not in config:
+            continue
+        else:
+            os_net_config = config.get('os_net_config')
+            if not isinstance(os_net_config, collections.Mapping):
+                errors.append(
+                    "The 'os_net_config' section of '{}' must be a dictionary."
+                    .format(name))
+                continue
+        if 'network_config' in os_net_config:
+            bridges = os_net_config['network_config']
+        else:
+            continue
+        if not isinstance(bridges, collections.Iterable):
+            errors.append("The 'network_config' section of '{}' must be a list."
+                          .format(name))
+            continue
         for bridge in bridges:
+            if 'type' not in bridge:
+                errors.append("The bridge item {} in {} {} must have a type."
+                              .format(bridge, name, path))
+                continue
+            if 'name' not in bridge:
+                errors.append("The bridge item {} in {} {} must have a name."
+                              .format(bridge, name, path))
+                continue
             if bridge['type'] == 'ovs_bridge':
                 bond_count = 0
                 interface_count = 0
+                if not isinstance(bridge.get('members'), collections.Iterable):
+                    errors.append(
+                        "OVS bridge {} in {} {} must contain a 'members' list."
+                        .format(bridge, name, path))
+                    continue
                 for bond in bridge['members']:
+                    if not isinstance(bond, collections.Mapping):
+                        errors.append(
+                            "The {} bond in {} {} must be a dictionary."
+                            .format(bond, name, path))
+                        continue
+                    if 'type' not in bond:
+                        errors.append(
+                            "The {} bond in {} {} must have a type."
+                            .format(bond, name, path))
+                        continue
                     if bond['type'] == 'ovs_bond':
                         bond_count += 1
-                    if bond['type'] == 'interface':
+                    elif bond['type'] == 'interface':
                         interface_count += 1
+                    else:
+                        # TODO(mandre) should we add an error for unknown bond
+                        # types?
+                        pass
+
                 if bond_count == 2:
                     errors.append(
-                        'Invalid bonding: There are 2 bonds for '
+                        'Invalid bonding: There are 2 bonds for'
                         ' bridge {} of resource {} in {}'.format(
                             bridge['name'], name, path))
                 if bond_count == 0 and interface_count > 1:
@@ -97,47 +184,64 @@ def check_nic_configs(resource, path):
 def check_cidr_overlap(networks):
     errors = []
     objs = []
+    if not isinstance(networks, collections.Iterable):
+        return ["The argument must be iterable."]
     for x in networks:
         try:
-            objs += [netaddr.IPNetwork(x.decode('utf-8'))]
-        except ValueError:
-            errors.append('Invalid address: {}'.format(x))
+            objs.append(netaddr.IPNetwork(x))
+        except (ValueError, TypeError):
+            errors.append('Invalid network: {}'.format(x))
 
     for net1, net2 in itertools.combinations(objs, 2):
         if (net1 in net2 or net2 in net1):
             errors.append(
-                'Overlapping networks detected {} {}'.format(net1, net2))
+                'Networks {} and {} overlap.'
+                .format(net1, net2))
     return errors
 
 
 def check_allocation_pools_pairing(filedata, pools):
+    if not isinstance(filedata, collections.Mapping):
+        return ["The first argument must be a dictionary."]
+    if not isinstance(pools, collections.Mapping):
+        return ["The second argument must be a dictionary."]
     errors = []
     for poolitem, pooldata in six.iteritems(pools):
         pool_objs = []
+        if not isinstance(pooldata, collections.Iterable):
+            errors.append('The IP ranges in {} must form a list.'
+                          .format(poolitem))
+            continue
         for dict_range in pooldata:
             try:
                 pool_objs.append(netaddr.IPRange(
                     netaddr.IPAddress(dict_range['start']),
                     netaddr.IPAddress(dict_range['end'])))
             except Exception:
-                errors.append("Invalid format of the ip range in {}: {}".format(
-                    poolitem, dict_range))
+                errors.append("Invalid format of the IP range in {}: {}"
+                              .format(poolitem, dict_range))
+                continue
 
         subnet_item = poolitem.split('AllocationPools')[0] + 'NetCidr'
         try:
-            subnet_obj = netaddr.IPNetwork(
-                filedata[subnet_item].decode('utf-8'))
-        except ValueError:
-            errors.append('Invalid address: {}'.format(subnet_item))
+            network = filedata[subnet_item]
+            subnet_obj = netaddr.IPNetwork(network)
+        except KeyError:
+            errors.append('The {} CIDR is not specified for {}.'
+                          .format(subnet_item, poolitem))
+            continue
+        except Exception:
+            errors.append('Invalid IP network: {}'.format(network))
+            continue
 
         for ranges in pool_objs:
             for range in ranges:
                 if range not in subnet_obj:
                     errors.append('Allocation pool {} {} outside of subnet'
-                                  '{}: {}'.format(poolitem,
-                                                  pooldata,
-                                                  subnet_item,
-                                                  subnet_obj))
+                                  ' {}: {}'.format(poolitem,
+                                                   pooldata,
+                                                   subnet_item,
+                                                   subnet_obj))
                     break
     return errors
 
@@ -156,17 +260,43 @@ def check_static_ip_pool_collision(static_ips, pools):
         'storage': ['192.168.100.45', etc.]
     }
     """
+    if not isinstance(static_ips, collections.Mapping):
+        return ["The static IPs input must be a dictionary."]
+    if not isinstance(pools, collections.Mapping):
+        return ["The Pools input must be a dictionary."]
     errors = []
-
     pool_ranges = []
     for pool_name, ranges in six.iteritems(pools):
+        if not isinstance(ranges, collections.Iterable):
+            errors.append("The IP ranges in {} must form a list."
+                          .format(pool_name))
+            continue
         for allocation_range in ranges:
-            ip_range = netaddr.IPRange(allocation_range['start'],
-                                allocation_range['end'])
+            try:
+                ip_range = netaddr.IPRange(allocation_range['start'],
+                                           allocation_range['end'])
+            except Exception:
+                errors.append("Invalid format of the IP range in {}: {}"
+                              .format(pool_name, allocation_range))
+                continue
             pool_ranges.append((pool_name, ip_range))
+
     for role, services in six.iteritems(static_ips):
+        if not isinstance(services, collections.Mapping):
+            errors.append("The {} must be a dictionary.".format(role))
+            continue
         for service, ips in six.iteritems(services):
+            if not isinstance(ips, collections.Iterable):
+                errors.append("The {}->{} must be an array."
+                              .format(role, service))
+                continue
             for ip in ips:
+                try:
+                    ip = netaddr.IPAddress(ip)
+                except netaddr.AddrFormatError as e:
+                    errors.append("{} is not a valid IP address: {}"
+                                  .format(ip, e))
+                    continue
                 ranges_with_conflict = ranges_conflicting_with_ip(
                     ip, pool_ranges)
                 if ranges_with_conflict:
@@ -191,6 +321,8 @@ def ranges_conflicting_with_ip(ip_address, ip_ranges):
 
 
 def check_vlan_ids(vlans):
+    if not isinstance(vlans, collections.Mapping):
+        return ["The vlans parameter must be a dictionary."]
     errors = []
     invertdict = {}
     for k, v in six.iteritems(vlans):
@@ -207,6 +339,10 @@ def check_static_ip_in_cidr(networks, static_ips):
     Verify that all the static IP addresses are from the corresponding network
     range.
     '''
+    if not isinstance(networks, collections.Mapping):
+        return ["The networks argument must be a dictionary."]
+    if not isinstance(static_ips, collections.Mapping):
+        return ["The static_ips argument must be a dictionary."]
     errors = []
     network_ranges = {}
     # TODO(shadower): Refactor this so networks are always valid and already
@@ -214,13 +350,20 @@ def check_static_ip_in_cidr(networks, static_ips):
     for name, cidr in six.iteritems(networks):
         try:
             network_ranges[name] = netaddr.IPNetwork(cidr)
-        except ValueError:
+        except Exception:
             errors.append("Network '{}' has an invalid CIDR: '{}'"
                           .format(name, cidr))
     for role, services in six.iteritems(static_ips):
+        if not isinstance(services, collections.Mapping):
+            errors.append("The {} must be a dictionary.".format(role))
+            continue
         for service, ips in six.iteritems(services):
             range_name = service.title().replace('_', '') + 'NetCidr'
             if range_name in network_ranges:
+                if not isinstance(ips, collections.Iterable):
+                    errors.append("The {}->{} must be a list."
+                                  .format(role, service))
+                    continue
                 for ip in ips:
                     if ip not in network_ranges[range_name]:
                         errors.append(
@@ -235,11 +378,20 @@ def check_static_ip_in_cidr(networks, static_ips):
 
 def duplicate_static_ips(static_ips):
     errors = []
+    if not isinstance(static_ips, collections.Mapping):
+        return ["The static_ips argument must be a dictionary."]
     ipset = collections.defaultdict(list)
     # TODO(shadower): we're doing this netsted loop multiple times. Turn it
     # into a generator or something.
     for role, services in six.iteritems(static_ips):
+        if not isinstance(services, collections.Mapping):
+            errors.append("The {} must be a dictionary.".format(role))
+            continue
         for service, ips in six.iteritems(services):
+            if not isinstance(ips, collections.Iterable):
+                errors.append("The {}->{} must be a list."
+                              .format(role, service))
+                continue
             for ip in ips:
                 ipset[ip].append((role, service))
     for ip, sources in six.iteritems(ipset):
