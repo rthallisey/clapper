@@ -4,7 +4,7 @@
     metadata:
       name: Check connectivity of the compute nodes.
       groups:
-        - network
+        - post-deployment
 
   tasks:
   - name: Run ping test

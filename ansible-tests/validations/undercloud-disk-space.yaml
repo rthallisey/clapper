@@ -6,7 +6,8 @@
       description: >
         Make sure that the root partition on the undercloud node is large enough.
       groups:
-        - pre-deployment
+        - prep
+        - pre-introspection
     # https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux_OpenStack_Platform/7/html/Director_Installation_and_Usage/sect-Undercloud_Requirements.html
     minimum_disk_space_gb: 40
   tasks:

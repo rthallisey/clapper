@@ -3,7 +3,7 @@
   vars:
     metadata:
       name: HAProxy configuration
-      description: todo
+      description: Verify the HAProxy configuration has recommended values.
       groups:
         - post-deployment
     config_file: '/etc/haproxy/haproxy.cfg'

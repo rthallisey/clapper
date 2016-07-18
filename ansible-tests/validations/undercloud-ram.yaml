@@ -8,7 +8,8 @@
 
         https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux_OpenStack_Platform/7/html/Director_Installation_and_Usage/sect-Undercloud_Requirements.html
       groups:
-        - pre-deployment
+        - prep
+        - pre-introspection
     minimum_ram_gb: 16
   tasks:
   - name: Verify the RAM requirements

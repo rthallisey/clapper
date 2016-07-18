@@ -2,8 +2,9 @@
 - hosts: undercloud
   vars:
     metadata:
-      name: Check access to various openstack services
+      name: Check connectivity to various OpenStack services
       description: >
+        # TODO: this could also check for undercloud encpoints
         This will attempt to connect to each service endpoint defined in
         your hosts file's controller_vip variable.
       groups:
