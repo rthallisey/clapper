@@ -19,7 +19,7 @@
     fail:
       msg: >
         nofiles is set to {{ nofilesval.stdout }}.  It should be higher.
-    failed_when: "{{ nofilesval.stdout|int }} < {{ nofiles_check }}"
+    failed_when: "{{ nofilesval.stdout|int }} < {{ nofiles_default }}"
     #ignore_errors: True
 
   - name: Get nproc limit
@@ -31,4 +31,4 @@
     fail:
       msg: >
         nproc is set to {{ nprocval.stdout }}.  It should be higher.
-    failed_when: "{{ nprocval.stdout|int }} < {{ nproc_check }}"
+    failed_when: "{{ nprocval.stdout|int }} < {{ nproc_default }}"
