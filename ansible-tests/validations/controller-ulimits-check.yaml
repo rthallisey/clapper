@@ -7,6 +7,8 @@
         This will check the ulimits of each controller.
       groups:
       - post-deployment
+    nofiles_default: 1025
+    nproc_default: 1025
   tasks:
   - name: Get nofiles limit
     become: true
@@ -17,7 +19,7 @@
     fail:
       msg: >
         nofiles is set to {{ nofilesval.stdout }}.  It should be higher.
-    failed_when: "{{ nofilesval.stdout|int }} < 1025"
+    failed_when: "{{ nofilesval.stdout|int }} < {{ nofiles_check }}"
     #ignore_errors: True
 
   - name: Get nproc limit
@@ -29,4 +31,4 @@
     fail:
       msg: >
         nproc is set to {{ nprocval.stdout }}.  It should be higher.
-    failed_when: "{{ nprocval.stdout|int }} < 1025"
+    failed_when: "{{ nprocval.stdout|int }} < {{ nproc_check }}"
