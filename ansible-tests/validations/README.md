@@ -21,6 +21,7 @@ Validations can belong to multiple groups.
 
 ## Pre-introspection ##
 
+* [Verify `network_gateway` is set correctly in `undercloud.conf` and is reachable](check-network-gateway.yaml)
 * [Check the number of IP addresses for the overcloud nodes](ctlplane-ip-range.yaml)
 * [Validate the instackenv.json file contents](instackenv.yaml)
 * [Detect rogue DHCP servers](rogue-dhcp.yaml)
@@ -31,7 +32,6 @@ Validations can belong to multiple groups.
 ## Pre-deployment ##
 
 * [Make sure the undercloud drives have 512e support](512e.yaml)
-* [Verify `network_gateway` is set correctly in `undercloud.conf` and is reachable](check-network-gateway.yaml)
 * [Highlight differences between nodes based on the discovery data from Ironic](discovery_diff.yaml)
 * [Validate the Heat network environment files](network_environment.yaml)
 * [Detect rogue DHCP servers](rogue-dhcp.yaml)
