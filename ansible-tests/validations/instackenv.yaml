@@ -11,7 +11,7 @@
         all the MAC and IPMI addresses are unique and in case the
         `ipmitool` is available, tries to connect to each node.
       groups:
-      - pre-deployment
+      - pre-introspection
     instackenv_file_path: /home/stack/instackenv.json
   tasks:
   - name: Validate instackenv.json

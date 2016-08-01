@@ -6,7 +6,8 @@
       description: >
         Make sure that the undercloud has enough CPU cores.
       groups:
-        - pre-deployment
+        - prep
+        - pre-introspection
     # https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux_OpenStack_Platform/7/html/Director_Installation_and_Usage/sect-Undercloud_Requirements.html
     undercloud_core_count: 8
   tasks:

@@ -6,6 +6,8 @@
       name: Rogue DHCP
       description: Locate rogue DHCP servers on Pacemaker-managed networks
       groups:
+        - prep
+        - pre-introspection
         - pre-deployment
   tasks:
   - name: Install scapy
