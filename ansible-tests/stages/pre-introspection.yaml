@@ -1,0 +1,15 @@
+---
+- hosts: undercloud
+  vars:
+    metadata:
+      name: Pre-introspection
+      description: >
+        When the undercloud is ready to perform hardware introspection
+      stage: pre-introspection
+- include: ../validations/check-network-gateway.yaml
+- include: ../validations/ctlplane-ip-range.yaml
+- include: ../validations/instackenv.yaml
+- include: ../validations/rogue-dhcp.yaml
+- include: ../validations/undercloud-cpu.yaml
+- include: ../validations/undercloud-disk-space.yaml
+- include: ../validations/undercloud-ram.yaml

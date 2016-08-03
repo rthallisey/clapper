@@ -5,11 +5,12 @@
       name: Post-deployment
       description: Validations that run after the deployment has finished
       stage: post-deployment
-- include: ../validations/haproxy.yaml
-- include: ../validations/rabbitmq-limits.yaml
-- include: ../validations/neutron-sanity-check.yaml
-- include: ../validations/mysql-open-files-limit.yaml
 - include: ../validations/check_openstack_endpoints.yaml
+- include: ../validations/compute_node_connectivity.yaml
+- include: ../validations/haproxy.yaml
+- include: ../validations/mysql-open-files-limit.yaml
+- include: ../validations/neutron-sanity-check.yaml
 - include: ../validations/no-op-firewall-nova-driver.yaml
 - include: ../validations/ntpstat.yaml
+- include: ../validations/rabbitmq-limits.yaml
 - include: ../validations/pacemaker-status.yaml
