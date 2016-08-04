@@ -23,7 +23,7 @@ def main():
 
         result = config.get(section, option)
 
-        module.exit_json(changed=False, ansible_facts={u'value': result})
+        module.exit_json(changed=False, value=result)
     else:
         module.fail_json(msg="Could not open the '%s' file"
                          % undercloud_conf_path)
