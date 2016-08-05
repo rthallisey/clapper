@@ -24,8 +24,8 @@ running Keystone.
 If you run `dhcp-test.sh`, it will install the dependencies, run the
 test script and remove the deps again:
 
-    # ./dhcp-test.sh -p 10.15.20.0/16 -p 10.15.32.0/16
+    # ./dhcp-test.sh -p 10.15.20.0 -p 10.15.32.0
 
 If you install the dependencies yourself, you can run the test script directly:
 
-    # python test-pacemaker-networks.py 10.15.20.0/16 10.15.32.0/16
+    # python test-pacemaker-networks.py 10.15.20.0 10.15.32.0
