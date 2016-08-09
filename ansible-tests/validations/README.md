@@ -48,3 +48,4 @@ Validations can belong to multiple groups.
 * [Verify all hosts have NTP configured and running](ntpstat.yaml)
 * [Verify the pacemaker status on the controller nodes](pacemaker-status.yaml)
 * [Verify the rabbitmq file descriptor limits are set correctly.](rabbitmq-limits.yaml)
+* [Check ulimits on controller nodes](controller-ulimits-check.yaml)
