@@ -21,7 +21,7 @@ def contact_node(address, username, password):
     '''
     cmd = ['ipmitool', '-R', '1', '-I', 'lanplus',
            '-H', address, '-U', username, '-P', password,
-           'chassis' 'status']
+           'chassis', 'status']
     try:
         status = subprocess.call(cmd)
         return status == 0
