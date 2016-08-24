@@ -15,6 +15,6 @@
     undercloud_conf: undercloud_conf_path={{ undercloud_conf_path }}
   - name: Check the size of the DHCP range for overcloud nodes
     ip_range:
-      start: "{{ undercloud_conf.DEFAULT.dhcp_start }}"
-      end: "{{ undercloud_conf.DEFAULT.dhcp_end }}"
+      start: "{{ undercloud_conf.DEFAULT.dhcp_start|default('192.0.2.5') }}"
+      end: "{{ undercloud_conf.DEFAULT.dhcp_end|default('192.0.2.24') }}"
       min_size: "{{ ctlplane_iprange_min_size }}"
