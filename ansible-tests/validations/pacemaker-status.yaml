@@ -16,4 +16,4 @@
     command: pcs status xml
     register: pcs_status
   - name: Check pacemaker status
-    pacemaker: status="{{ pcs_status.stdout }}"
+    pacemaker: status="{{ pcs_status.stdout| b64encode }}"
