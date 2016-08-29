@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+
+import base64
 import itertools
 from subprocess import Popen, PIPE
 from xml.etree import ElementTree
@@ -28,7 +31,7 @@ def main():
         status=dict(required=True, type='str'),
     ))
 
-    pcs_status = parse_pcs_status(module.params.get('status'))
+    pcs_status = parse_pcs_status(base64.b64decode(module.params.get('status')))
     failures = pcs_status['failures']
     failed = len(failures) > 0
     if failed:
