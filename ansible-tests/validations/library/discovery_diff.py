@@ -75,48 +75,6 @@ def process_nested_dict(d, prefix=None):
     return result
 
 
-def process_nested_list(l):
-    '''
-    Turn a list of lists into a single key/value dict.
-
-    Example:
-    inspector_data = [
-        ['memory_mb', 6000],
-        ['system', 'os', 'version', 'CentOS Linux release 7.2.1511 (Core)'],
-        ['network', 'eth0', 'businfo', 'pci@0000:00:03.0'],
-    ]
-
-    >>> process_nested_list(inspector_data)
-    {
-        'memory_mb': 6000,
-        'system/os/version': 'CentOS Linux release 7.2.1511 (Core)',
-        'network/eth0/businfo': 'pci@0000:00:03.0',
-    }
-    '''
-    result = {}
-    for item in l:
-        key = '/'.join(item[:-1])
-        value = item[-1]
-        result[key] = value
-    return result
-
-
-def process_inspector_data(hw_item):
-    '''
-    Convert the raw ironic inspector data into something easier to work with.
-
-    The inspector posts either a list of lists or a nested dictionary. We turn
-    it to a flat dictionary with nested keys separated by a slash.
-    '''
-    if isinstance(hw_item, dict):
-        return process_nested_dict(hw_item)
-    elif isinstance(hw_item, list):
-        return process_nested_list(hw_item)
-    else:
-        msg = "The hardware item '{}' must be either a dictionary or a list"
-        raise Exception(msg.format(repr(hw_item)))
-
-
 def main():
     module = AnsibleModule(
         argument_spec={
@@ -139,9 +97,15 @@ def main():
             p.stderr.read())
         module.fail_json(msg=msg)
 
-    hardware_ids = [i.strip() for i in p.stdout.read().splitlines() if i.strip()]
+    all_hardware_ids = [i.strip() for i in p.stdout.read().splitlines()
+                        if i.strip()]
+    # Skip the unprocessed values with prefix "extra_hardware" or
+    # "UNPROCESSED" suffix.
+    hardware_ids = [hw_id for hw_id in all_hardware_ids
+                    if not (hw_id.startswith('extra_hardware-') or
+                            hw_id.endswith('-UNPROCESSED'))]
     inspector_data = [get_node_hardware_data(i, env) for i in hardware_ids]
-    processed_data = [process_inspector_data(hw) for hw in inspector_data]
+    processed_data = [process_nested_dict(hw) for hw in inspector_data]
 
     all_keys = set()
     for hw in processed_data:
