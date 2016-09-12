@@ -2,7 +2,7 @@
 - hosts: undercloud
   vars:
     metadata:
-      name: Pre-introspection
+      name: Node validation
       description: >
         When the undercloud is ready to perform hardware introspection
       stage: pre-introspection

@@ -2,7 +2,7 @@
 - hosts: undercloud
   vars:
     metadata:
-      name: Prep
+      name: "H/W & N/W validation prep"
       description: >
         Validations that are run on a fresh machine before the
         undercloud is installed
