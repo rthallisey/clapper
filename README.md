@@ -1,3 +1,19 @@
+This Repository Is Deprecated!
+==============================
+
+The validations were moved under TripleO to this repository:
+
+http://git.openstack.org/cgit/openstack/tripleo-validations/
+
+The issues and suggestions are tracked on the TripleO launchpad:
+
+https://bugs.launchpad.net/tripleo/+bugs
+
+with the `validations` tag.
+
+The rest of the Clapper repository is kept here for historical reasons.
+
+
 Clapper
 =======
 
